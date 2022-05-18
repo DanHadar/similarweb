@@ -1,17 +1,31 @@
-const config = require( '../../server.config' );
+const { FINISHED_STATIC_FILES_PATH, FAILED_STATIC_FILES_PATH } = require( '../../server.config' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
-
+const { ACTION_CONST } = require( '../utils/index' );
+// db/redis - for scale up need to store data in central place like database/cache
 let visitorSessions = {}; //{id:{site:[Session]}}
 let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
 let sessionsIdCounter = 0;
+// end db/redis
 
+let visitorSessionsTemp;
+let siteVisitsTemp;
+let sessionsIdCounterTemp;
 module.exports = {
+    fillDataFromDB() {
+        visitorSessionsTemp = visitorSessions;
+        siteVisitsTemp = siteVisits;
+        sessionsIdCounterTemp = sessionsIdCounter;
+    },
+    commitDataToDB() {
+        visitorSessions = visitorSessionsTemp;
+        siteVisits = siteVisitsTemp;
+        sessionsIdCounter = sessionsIdCounterTemp;
+    },
     async readCsvRows( path, fileName, cb ) {
-        const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
-        const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
+        const finishedStaticFilesPath = `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }`;
+        const failedStaticFilesPath = `${ process.cwd() }${ FAILED_STATIC_FILES_PATH }`;
         return new Promise( function ( resolve, reject ) {
-            const records = [];
             const parser = fs.createReadStream( `${ path }/${ fileName }` ).pipe( parse( {
                 from_line: 1,
                 delimiter: ','
@@ -20,7 +34,7 @@ module.exports = {
             parser.on( 'readable', function () {
                 let record;
                 while ( ( record = parser.read() ) !== null ) {
-                    [ visitorId, site, , ts ] = record;
+                    let [ visitorId, site, , ts ] = record;
                     ts = ts * 1000;
                     cb( visitorId, site, ts );
                 }
@@ -38,46 +52,54 @@ module.exports = {
     },
 
     getVisitorUniqueSites( visitorId ) {
-        return visitorSessions[ visitorId ]?.uniqueSites;
+        return visitorSessionsTemp[ visitorId ]?.uniqueSites;
     },
     getVisitorSessions( visitorId, site ) {
-        visitorSessions[ visitorId ] || ( visitorSessions[ visitorId ] = { sessions: {}, uniqueSites: {} } );
-        visitorSessions[ visitorId ][ 'uniqueSites' ][ site ] || ( visitorSessions[ visitorId ][ 'uniqueSites' ][ site ] = true );
-        visitorSessions[ visitorId ][ 'sessions' ][ site ] || ( visitorSessions[ visitorId ][ 'sessions' ][ site ] = [] );
-        return visitorSessions[ visitorId ];
+        visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: {}, uniqueSites: {} } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = true );
+        visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
+        return visitorSessionsTemp[ visitorId ];
     },
-    addSiteSession( visitorId, site, visitTs, position ) {
-        const id = this.getNewSessionId();
-        visitorSessions[ visitorId ][ 'sessions' ][ site ].splice( position, 0, { id, firstVisit: visitTs, lastVisit: visitTs } );
+    addSiteSession( visitorId, site, visitTimeStamp, position ) {
+        const id = sessionsIdCounterTemp;
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimeStamp, lastVisit: visitTimeStamp } );
     },
-    updateSession( visitorId, site, position, visitType, newValue ) {
-        visitorSessions[ visitorId ][ 'sessions' ][ site ][ position ][ visitType ] = newValue;
-        return visitorSessions[ visitorId ][ 'sessions' ][ site ][ position ][ visitType ];
+    updateSession( visitorId, site, position, visitType, sessionLength ) {
+        visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ] = sessionLength;
+        return visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ];
     },
     delSession( visitorId, site, position ) {
-        visitorSessions[ visitorId ][ 'sessions' ][ site ].splice( position, 1 );
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 1 );
     },
     getSiteVisits( site ) {
-        siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
-        return siteVisits[ site ];
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        return siteVisitsTemp[ site ];
     },
     getSiteSessionCount( siteUrl ) {
-        return siteVisits[ siteUrl ]?.sessionCount;
+        return siteVisitsTemp[ siteUrl ]?.sessionCount;
     },
-    setSiteSessionCount( site, action ) {
-        action === 'increase' ? siteVisits[ site ][ 'sessionCount' ] += 1 : siteVisits[ site ][ 'sessionCount' ] -= 1;
+    setSiteSessionCount( site, ACTION ) {
+        let sessionsCount = siteVisitsTemp[ site ].sessionCount;
+        switch ( ACTION ) {
+            case ACTION_CONST.INCREASE:
+                sessionsCount++;
+                break;
+            case ACTION_CONST.DECREASE:
+                sessionsCount--;
+                break;
+            default:
+                sessionsCount++;
+                break;
+        }
     },
     getAllSiteSessionLength( siteUrl ) {
-        return siteVisits[ siteUrl ]?.sessionLength;
+        return siteVisitsTemp[ siteUrl ]?.sessionLength;
     },
-    setSiteSessionLength( site, newValue, id = this.getNewSessionId( true ) ) {
-        siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
-        siteVisits[ site ][ 'sessionLength' ][ id ] = newValue;
+    setSiteSessionLength( site, sessionLength = 0, id = ++sessionsIdCounterTemp ) {
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        siteVisitsTemp[ site ].sessionLength[ id ] = sessionLength;
     },
     delSessionLength( site, id ) {
-        delete siteVisits[ site ][ 'sessionLength' ][ id ];
-    },
-    getNewSessionId( increaseNeeded ) {
-        return increaseNeeded ? ++sessionsIdCounter : sessionsIdCounter;
+        delete siteVisitsTemp[ site ].sessionLength[ id ];
     }
 };
