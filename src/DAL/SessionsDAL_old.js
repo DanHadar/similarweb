@@ -16,7 +16,7 @@ class SessionsDAL {
         }, 0 );
     }
 
-    visitorUniqueSites( visitorId ) {
+    getVisitorUniqueSites( visitorId ) {
         return Object.keys( global.visitorSessions[ visitorId ] ).length;
     }
 
@@ -62,7 +62,7 @@ class SessionsDAL {
                             else {
                                 let lastSessionCheck;
                                 let i;
-                                console.log(visitorSessions.length);
+                                console.log( visitorSessions.length );
                                 for ( i = visitorSessions.length - 1; i >= 0; i-- ) {
                                     const currentSession = visitorSessions[ i ];
                                     // const newPageViewToSessRes = currentSession.newPageView( ts, lastSessionCheck );
@@ -96,7 +96,7 @@ class SessionsDAL {
                                         if ( !lastSessionCheck || tsDiffInMin( lastSessionCheck[ 0 ], ts ) > config.SESSION_LIMIT ) {
                                             // visitorSessions.insertSessionBetween( i, { lastVisit: ts, firstVisit: ts } );
                                             // visitorSessions.splice( i + 1, 0, { lastVisit: ts, firstVisit: ts } );
-                                            visitorSessions.push({ lastVisit: ts, firstVisit: ts })
+                                            visitorSessions.push( { lastVisit: ts, firstVisit: ts } );
                                         }
                                         return;
                                     }

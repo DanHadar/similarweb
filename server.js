@@ -1,5 +1,5 @@
 const SiteVisitsManager = require( './src/services/SiteVisitsManager' );
-const { fillSessionsData, sessionCountBySite, visitorUniqueSites, sessionLengthMedianBySite } = require( './src/DAL/SessionsDAL' );
+const { fillSessionsData, sessionCountBySite, getVisitorUniqueSites, sessionLengthMedianBySite } = require( './src/DAL/SessionsDAL' );
 const config = require( './server.config' );
 const app = require( "express" )();
 const port = config.PORT;

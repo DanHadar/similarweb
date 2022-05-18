@@ -36,7 +36,7 @@ module.exports = {
         } );
     },
 
-    visitorUniqueSites( visitorId ) {
+    getVisitorUniqueSites( visitorId ) {
         return visitorSessions[ visitorId ]?.uniqueSites;
     },
     getVisitorSessions( visitorId, site ) {
@@ -60,13 +60,13 @@ module.exports = {
         siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
         return siteVisits[ site ];
     },
-    siteSessionCount( siteUrl ) {
+    getSiteSessionCount( siteUrl ) {
         return siteVisits[ siteUrl ]?.sessionCount;
     },
     setSiteSessionCount( site, action ) {
         action === 'increase' ? siteVisits[ site ][ 'sessionCount' ] += 1 : siteVisits[ site ][ 'sessionCount' ] -= 1;
     },
-    siteSumSessionLength( siteUrl ) {
+    getAllSiteSessionLength( siteUrl ) {
         return siteVisits[ siteUrl ]?.sessionLength;
     },
     setSiteSessionLength( site, newValue, id = this.getNewSessionId( true ) ) {
