@@ -9,7 +9,7 @@ let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
 let sessionsIdCounter = 0;
 
 module.exports = {
-    async readCsvRows( path, visitorSessionsObj, siteVisitsObj, cb ) {
+    async readCsvRows( path, cb ) {
         return new Promise( function ( resolve, reject ) {
             const records = [];
             const parser = fs.createReadStream( path ).pipe( parse( {
@@ -21,16 +21,10 @@ module.exports = {
                 let record;
                 while ( ( record = parser.read() ) !== null ) {
                     //--- initializing
-                    // [ visitorId, site, , ts ] = row;
-                    // ts = ts * 1000;
-                    // let currentVisitorSessions = visitorSessionsObj[ visitorId ];
-                    // currentVisitorSessions || ( currentVisitorSessions = { sessions: {}, uniqueSites: {} } );
-                    // currentVisitorSessions[ 'uniqueSites' ][ site ] || ( currentVisitorSessions[ 'uniqueSites' ][ site ] = true );
-                    // currentVisitorSessions[ 'sessions' ][ site ] || ( currentVisitorSessions[ 'sessions' ][ site ] = [] );
-                    // siteVisitsObj[ site ] || ( siteVisitsObj[ site ] = { sessionCount: 0, sessionLength: {} } );
-                    // let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
-                    // cb();
-                    records.push( record );
+                    [ visitorId, site, , ts ] = record;
+                    ts = ts * 1000;
+                    cb( visitorId, site, ts );
+                    // records.push( record );
                 }
             } );
             parser.on( 'error', function ( err ) {
@@ -51,7 +45,7 @@ module.exports = {
         visitorSessions[ visitorId ][ 'sessions' ][ site ] || ( visitorSessions[ visitorId ][ 'sessions' ][ site ] = [] );
         return visitorSessions[ visitorId ];
     },
-    addSiteSession( visitorId, site, visitTs, position = 0 ) {
+    addSiteSession( visitorId, site, visitTs, position ) {
         const id = this.getNewSessionId();
         visitorSessions[ visitorId ][ 'sessions' ][ site ].splice( position, 0, { id, firstVisit: visitTs, lastVisit: visitTs } );
     },
@@ -75,7 +69,7 @@ module.exports = {
     siteSumSessionLength( siteUrl ) {
         return siteVisits[ siteUrl ]?.sessionLength;
     },
-    setSessionLength( site, newValue, id = this.getNewSessionId( true ) ) {
+    setSiteSessionLength( site, newValue, id = this.getNewSessionId( true ) ) {
         siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
         siteVisits[ site ][ 'sessionLength' ][ id ] = newValue;
     },
@@ -85,4 +79,4 @@ module.exports = {
     getNewSessionId( increaseNeeded ) {
         return increaseNeeded ? ++sessionsIdCounter : sessionsIdCounter;
     }
-}
+};

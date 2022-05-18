@@ -13,9 +13,9 @@ module.exports = {
         console.time( funcName );
         for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
             const fileName = files[ fileIndex ];
-            console.time(fileName)
-            const csvJson = await SessionsDal.readCsvRows( `${ newStaticFilesPath }/${ fileName }` ); //read csv as array
-            console.timeEnd(fileName)
+            console.time( fileName );
+            const csvJson = await SessionsDal.readCsvRows( `${ newStaticFilesPath }/${ fileName }`, fillSessionData ); //read csv as array
+            console.timeEnd( fileName );
             // csvJson.forEach( function ( row ) { //loop over rows in the csv
             //     //--- initializing
             //     [ visitorId, site, , ts ] = row;
@@ -25,7 +25,7 @@ module.exports = {
 
             //     //--- fill first session of id+site
             //     if ( !currentSiteSessions.length ) {
-            //         SessionsDal.setSessionLength( site, 0 );
+            //         SessionsDal.setSiteSessionLength( site, 0 );
             //         SessionsDal.setSiteSessionCount( site, 'increase' );
             //         SessionsDal.addSiteSession( visitorId, site, ts );
             //         // currentSiteSessions.push( { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
@@ -37,17 +37,17 @@ module.exports = {
             //             if ( ts < currentSession.firstVisit ) {
             //                 if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
             //                     currentSession.firstVisit = SessionsDal.updateSession( visitorId, site, i, 'firstVisit', ts );
-            //                     SessionsDal.setSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+            //                     SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
             //                 }
             //                 else if ( i === 0 ) {
-            //                     SessionsDal.setSessionLength( site, 0 );
+            //                     SessionsDal.setSiteSessionLength( site, 0 );
             //                     SessionsDal.setSiteSessionCount( site, 'increase' );
             //                     SessionsDal.addSiteSession( visitorId, site, ts );
             //                     // currentSiteSessions.splice( 0, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
             //                 }
             //             }
             //             else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
-            //                 SessionsDal.setSessionLength( site, 0 );
+            //                 SessionsDal.setSiteSessionLength( site, 0 );
             //                 SessionsDal.setSiteSessionCount( site, 'increase' );
             //                 SessionsDal.addSiteSession( visitorId, site, ts, i + 1 );
             //                 // currentSiteSessions.splice( i + 1, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
@@ -66,7 +66,7 @@ module.exports = {
             //                     currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', ts );
             //                     // currentSession.lastVisit = ts;
             //                 }
-            //                 SessionsDal.setSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+            //                 SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
             //                 break;
             //             }
             //             else break;
@@ -98,6 +98,59 @@ module.exports = {
         return uniqueSitesObj ? Object.keys( uniqueSitesObj ).length : 0;
     }
 };
-function fillSessionData(){
-    
+function fillSessionData( visitorId, site, ts ) {
+    //--- initializing
+    let currentVisitorSessions = SessionsDal.getVisitorSessions( visitorId, site );
+    let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
+
+    //--- fill first session of id+site
+    if ( !currentSiteSessions.length ) {
+        // addNewSession( visitorId, site );
+        SessionsDal.setSiteSessionLength( site, 0 );
+        SessionsDal.setSiteSessionCount( site, 'increase' );
+        SessionsDal.addSiteSession( visitorId, site, ts );
+    }
+    else {//loop over exists session of id+site
+        for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
+            const currentSession = currentSiteSessions[ i ];
+            const currentSessionId = currentSession[ 'id' ];
+            if ( ts < currentSession.firstVisit ) {
+                if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
+                    currentSession.firstVisit = SessionsDal.updateSession( visitorId, site, i, 'firstVisit', ts );
+                    SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+                }
+                else if ( i === 0 ) {
+                    SessionsDal.setSiteSessionLength( site, 0 );
+                    SessionsDal.setSiteSessionCount( site, 'increase' );
+                    SessionsDal.addSiteSession( visitorId, site, ts );
+                }
+            }
+            else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
+                SessionsDal.setSiteSessionLength( site, 0 );
+                SessionsDal.setSiteSessionCount( site, 'increase' );
+                SessionsDal.addSiteSession( visitorId, site, ts, i + 1 );
+                break;
+            }
+            else if ( ts > currentSession.lastVisit && tsDiffInMin( ts, currentSession.lastVisit ) <= config.SESSION_LIMIT ) {
+                if ( ts === currentSiteSessions[ i + 1 ]?.firstVisit ) {//merge sessions
+                    currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', currentSiteSessions[ i + 1 ].lastVisit );;
+                    SessionsDal.delSessionLength( site, currentSiteSessions[ i + 1 ][ 'id' ] );
+                    SessionsDal.setSiteSessionCount( site, 'decrease' );
+                    SessionsDal.delSession( visitorId, site, i + 1 );
+                }
+                else {
+                    currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', ts );
+                }
+                SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+                break;
+            }
+            else break;
+        }
+    }
+}
+
+function addNewSession( visitorId, site, position = 0 ) {
+    SessionsDal.setSiteSessionLength( site, 0 );
+    SessionsDal.setSiteSessionCount( site, 'increase' );
+    SessionsDal.addSiteSession( visitorId, site, ts, position );
 }
