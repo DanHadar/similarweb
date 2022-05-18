@@ -6,9 +6,9 @@ const port = config.PORT;
 app.use( "/api", require( "./src/controllers/api" ) );
 async function main() {
     await SiteVisitsManager.calculateSessions();
-    // console.log( SiteVisitsManager.numUniqueVisitedSites( 'visitor_19as' ) );
-    // console.log( SiteVisitsManager.numSessions( 'www.s_19as.com' ) );
-    // console.log( SiteVisitsManager.medianSessionsLength( 'www.s_19as.com' ) );
+    console.log( SiteVisitsManager.numUniqueVisitedSites( 'visitor_1' ) );
+    console.log( SiteVisitsManager.numSessions( 'www.s_1.com' ) );
+    console.log( SiteVisitsManager.medianSessionsLength( 'www.s_1.com' ) );
     app.listen( port, () => {
         console.log( `${ config.SERVICE_NAME } running and listen to port ${ port }` );
     } );
