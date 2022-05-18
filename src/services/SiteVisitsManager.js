@@ -5,21 +5,28 @@ const fs = require( 'fs' );
 
 module.exports = {
     calculateSessions: async function () {
-        const newStaticFilesPath = `${ process.cwd() }${ config.NEW_STATIC_FILES_PATH }`;
-        const files = fs.readdirSync( newStaticFilesPath );
-        console.log( 'start ' + funcName );
-        console.time( funcName );
-        for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
-            const fileName = files[ fileIndex ];
-            console.time( fileName );
-            //read csv as array
-            const csvJson = await SessionsDal.readCsvRows( `${ newStaticFilesPath }/${ fileName }`, fillSessionData ); //min o(nlogn) max o(n^2)
-            console.timeEnd( fileName );
+        try {
+            const newStaticFilesPath = `${ process.cwd() }${ config.NEW_STATIC_FILES_PATH }`;
+            const files = fs.readdirSync( newStaticFilesPath ).map( fileName => SessionsDal.readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
+            console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
+            let funcName = 'diff files';
+            console.time( funcName );
+            await Promise.all( files );
+            // for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
+            //     const fileName = files[ fileIndex ];
+            //     console.time( fileName );
+            //     //read csv as array
+            //     await SessionsDal.readCsvRows( `${ newStaticFilesPath }/${ fileName }`, fillSessionData ); //min o(nlogn) max o(n^2)
+            //     console.timeEnd( fileName );
+            // }
+            // for ( const fileName of files ) {
+            //     // fs.rename( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
+            // }
+            console.timeEnd( funcName );
+            console.log( `Finished load files process successfully` );
+        } catch ( err ) {
+            console.error( `Failed to load new files, err: ${ err.stack }` );
         }
-        for ( const fileName of files ) {
-            // fs.rename( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
-        }
-        console.timeEnd( funcName );
     },
     numSessions: function ( siteUrl ) { //o(1)
         return SessionsDal.getSiteSessionCount( siteUrl ) || 0;
@@ -39,44 +46,48 @@ module.exports = {
     }
 };
 function fillSessionData( visitorId, site, ts ) {
-    //--- initializing
-    let currentVisitorSessions = SessionsDal.getVisitorSessions( visitorId, site );
-    let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
+    try {
+        //--- initializing
+        let currentVisitorSessions = SessionsDal.getVisitorSessions( visitorId, site );
+        let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
 
-    //--- fill first session of id+site
-    if ( !currentSiteSessions.length ) {
-        addNewSession( visitorId, site );
-    }
-    else {//loop over exists session of id+site
-        for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
-            const currentSession = currentSiteSessions[ i ];
-            const currentSessionId = currentSession[ 'id' ];
-            if ( ts < currentSession.firstVisit ) {
-                if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
-                    currentSession.firstVisit = SessionsDal.updateSession( visitorId, site, i, 'firstVisit', ts );
-                    SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
-                }
-                else if ( i === 0 ) {
-                    addNewSession( visitorId, site );
-                }
-            }
-            else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
-                addNewSession( visitorId, site, i + 1 );
-                break;
-            }
-            else if ( ts > currentSession.lastVisit && tsDiffInMin( ts, currentSession.lastVisit ) <= config.SESSION_LIMIT ) {
-                if ( ts === currentSiteSessions[ i + 1 ]?.firstVisit ) {//merge sessions
-                    currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', currentSiteSessions[ i + 1 ].lastVisit );
-                    delExistsSession( visitorId, site, currentSiteSessions[ i + 1 ][ 'id' ], i + 1 );
-                }
-                else {
-                    currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', ts );
-                }
-                SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
-                break;
-            }
-            else break;
+        //--- fill first session by id+site
+        if ( !currentSiteSessions.length ) {
+            addNewSession( visitorId, site );
         }
+        else {//loop over exists session by id+site
+            for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
+                const currentSession = currentSiteSessions[ i ];
+                const currentSessionId = currentSession[ 'id' ];
+                if ( ts < currentSession.firstVisit ) {
+                    if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
+                        currentSession.firstVisit = SessionsDal.updateSession( visitorId, site, i, 'firstVisit', ts );
+                        SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+                    }
+                    else if ( i === 0 ) {
+                        addNewSession( visitorId, site );
+                    }
+                }
+                else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
+                    addNewSession( visitorId, site, i + 1 );
+                    break;
+                }
+                else if ( ts > currentSession.lastVisit && tsDiffInMin( ts, currentSession.lastVisit ) <= config.SESSION_LIMIT ) {
+                    if ( ts === currentSiteSessions[ i + 1 ]?.firstVisit ) {//merge sessions
+                        currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', currentSiteSessions[ i + 1 ].lastVisit );
+                        delExistsSession( visitorId, site, currentSiteSessions[ i + 1 ][ 'id' ], i + 1 );
+                    }
+                    else {
+                        currentSession.lastVisit = SessionsDal.updateSession( visitorId, site, i, 'lastVisit', ts );
+                    }
+                    SessionsDal.setSiteSessionLength( site, tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit ), currentSessionId );
+                    break;
+                }
+                else break;
+            }
+        }
+    } catch ( err ) {
+        console.error( `Failed to fill session data for row : visitorId: ${ visitorId } , site: ${ site } , timestamp: ${ ts }, ${err.stack}` );
     }
 }
 

@@ -1,6 +1,4 @@
-const Session = require( '../classes/Session' );
 const config = require( '../../server.config' );
-const { tsDiffInMin, tsDiffInSec } = require( '../utils' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
 
@@ -9,10 +7,12 @@ let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
 let sessionsIdCounter = 0;
 
 module.exports = {
-    async readCsvRows( path, cb ) {
+    async readCsvRows( path, fileName, cb ) {
+        const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
+        const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
         return new Promise( function ( resolve, reject ) {
             const records = [];
-            const parser = fs.createReadStream( path ).pipe( parse( {
+            const parser = fs.createReadStream( `${ path }/${ fileName }` ).pipe( parse( {
                 from_line: 1,
                 delimiter: ','
             } ) );
@@ -20,18 +20,19 @@ module.exports = {
             parser.on( 'readable', function () {
                 let record;
                 while ( ( record = parser.read() ) !== null ) {
-                    //--- initializing
                     [ visitorId, site, , ts ] = record;
                     ts = ts * 1000;
                     cb( visitorId, site, ts );
-                    // records.push( record );
                 }
             } );
             parser.on( 'error', function ( err ) {
-                reject( `Faild to read csv file: ${ path }, err: ${ err.stack }` );
+                err.stack = `Faild to read csv file: ${ path }/${ fileName }, err: ${ err.stack }`;
+                reject( err );
+                // fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
             } );
             parser.on( 'end', function () {
-                resolve( records );
+                // fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
+                resolve();
             } );
         } );
     },
