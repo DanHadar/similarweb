@@ -1,139 +1,125 @@
 const Session = require( '../classes/Session' );
 const config = require( '../../server.config' );
-const { tsDiffInMin } = require( '../utils' );
+const { tsDiffInMin, tsDiffInSec } = require( '../utils' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
 
-Array.prototype.removeLastSessionChecked = function ( i ) { this.splice( i + 1, 1 ); };
-Array.prototype.insertSessionBetween = function ( i, obj ) { this.splice( i + 1, 0, obj ); };
+module.exports = {
 
-class SessionsDAL {
-    sessionCountBySite( siteUrl ) {
-        const relevantVisitors = global.siteVisits[ siteUrl ];
-        return Object.keys( relevantVisitors ).reduce( function ( numOfSessions, visitor ) {
-            return numOfSessions += global.visitorSessions[ visitor ][ siteUrl ].length;
-        }, 0 );
-    }
-
-    visitorUniqueSites( visitorId ) {
-        return Object.keys( global.visitorSessions[ visitorId ] ).length;
-    }
-
-    sessionLengthMedianBySite( siteUrl ) {
-        const relevantVisitors = global.siteVisits[ siteUrl ];
-        const sumSessionsAndCounter = Object.keys( relevantVisitors ).reduce( function ( sessionsArr, visitor ) {
-            global.visitorSessions[ visitor ][ siteUrl ].forEach( function ( session ) {
-                sessionsArr[ 0 ] += session.sessionLength();
-                sessionsArr[ 1 ] += 1;
-            } );
-            return sessionsArr;
-        }, [ 0, 0 ] );
-        return sumSessionsAndCounter[ 0 ] / sumSessionsAndCounter[ 1 ];
-    }
-    async fillSessionsData() {
-        global.siteVisits || ( global.siteVisits = {} ); //{url:{id1:true,id2:true},url2:{id2:true,id3:true}}
-        global.visitorSessions || ( global.visitorSessions = {} ); //{id1:{url:[session,session],url2:[session,session]}}
+    fillSessionsData: async function () {
+        global.siteVisits || ( global.siteVisits = {} );// {site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
         try {
-            console.log( 'SessionDal: Starting fill session data' );
+            global.visitorSessions = undefined; //{id:{site:[Session]}}
             const newStaticFilesPath = `${ process.cwd() }${ config.NEW_STATIC_FILES_PATH }`;
             const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
-            const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
-            const files = fs.readdirSync( newStaticFilesPath );
-            for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) {
+            const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`; const files = fs.readdirSync( newStaticFilesPath );
+            let sessionsIdCounter = 0;
+            let funcName = 'diff files';
+            console.log( 'start ' + funcName );
+            console.time( funcName );
+            for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
                 const fileName = files[ fileIndex ];
-                console.time( fileName );
-                let visitorId, site, ts;
-                try {
-                    const csvJson = await this.readCsvAsJson( `${ newStaticFilesPath }/${ fileName }` );
-                    csvJson.forEach( function ( pageView, rowIndex ) {
-                        if ( rowIndex % 5000 === 0 || rowIndex + 1 === csvJson.length ) console.log( `File number: ${ fileIndex + 1 }/${ files.length }, Row number: ${ rowIndex }/${ csvJson.length - 1 }` ); //indicate of process
-                        try {
-                            [ visitorId, site, , ts ] = pageView;
-                            ts = ( +ts ) * 1000;
-                            const siteVisitsObj = global.siteVisits[ site ] || {};
-                            if ( !siteVisitsObj[ visitorId ] ) global.siteVisits[ site ] = { ...siteVisitsObj, [ visitorId ]: true }; //fill who has visited the site
-                            const visitorSessions = ( global.visitorSessions[ visitorId ] || {} )[ site ];
-                            if ( !visitorSessions ) { //first visitor session in site
-                                global.visitorSessions[ visitorId ] || ( global.visitorSessions[ visitorId ] = {} );
-                                global.visitorSessions[ visitorId ][ site ] = [ new Session( ts ) ];
-                            }
-                            else {
-                                let lastSessionCheck;
-                                let i;
-                                for ( i = visitorSessions.length - 1; i >= 0; i-- ) {
-                                    const currentSession = visitorSessions[ i ];
-                                    const newPageViewToSessRes = currentSession.newPageView( ts, lastSessionCheck );
-                                    if ( !newPageViewToSessRes ) {
-                                        // return visitorSessions.removeLastSessionChecked( i );
-                                        return
-                                    }
-                                    else if ( !newPageViewToSessRes.length ) return;
-                                    else if ( newPageViewToSessRes.length === 1 ) {
-                                        if ( !lastSessionCheck || tsDiffInMin( lastSessionCheck[ 0 ], ts ) > config.SESSION_LIMIT ) {
-                                            visitorSessions.insertSessionBetween( i, new Session( ts ) );
-                                        }
-                                        return;
-                                    }
-                                    else lastSessionCheck = newPageViewToSessRes;
+                const csvJson = await readCsvAsJson( `${ newStaticFilesPath }/${ fileName }` ); //read csv as array
+                global.visitorSessions = csvJson.reduce( function ( visitorSessions, row ) { //loop over rows in the csv
+                    //--- initializing
+                    [ visitorId, site, , ts ] = row;
+                    ts = ts * 1000;
+                    let currentVisitorSessions = visitorSessions[ visitorId ];
+                    currentVisitorSessions || ( currentVisitorSessions = { sessions: {}, uniqueSites: {} } );
+                    global.siteVisits[ site ] || ( global.siteVisits[ site ] = { sessionsCount: 0, sumSessionsLength: {} } );
+                    currentVisitorSessions[ 'uniqueSites' ][ site ] || ( currentVisitorSessions[ 'uniqueSites' ][ site ] = true );
+                    currentVisitorSessions[ 'sessions' ][ site ] || ( currentVisitorSessions[ 'sessions' ][ site ] = [] );
+
+                    //--- fill first session of id+site
+                    let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
+                    if ( !currentSiteSessions.length ) {
+                        global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
+                        global.siteVisits[ site ][ 'sessionsCount' ] += 1;
+                        currentSiteSessions.push( { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
+                    }
+                    else {//loop over exists session of id+site
+                        for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
+                            const currentSession = currentSiteSessions[ i ];
+                            if ( ts < currentSession.firstVisit ) {
+                                if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
+                                    currentSession.firstVisit = ts;
+                                    global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSession[ 'id' ] ] = tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit );
                                 }
-
+                                else if ( i === 0 ) {
+                                    global.siteVisits[ site ][ 'sessionsCount' ] += 1;
+                                    global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
+                                    currentSiteSessions.splice( 0, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
+                                }
                             }
-
-                        } catch ( err ) {
-                            console.error();
-                            console.error( `SessionDAL: Failed to process row in file ${ fileName } \nRow details: ${ visitorId }, ${ site }, ${ ts } \nerr: ${ err.stack }` );
+                            else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
+                                global.siteVisits[ site ][ 'sessionsCount' ] += 1;
+                                global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
+                                currentSiteSessions.splice( i + 1, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
+                                break;
+                            }
+                            else if ( ts > currentSession.lastVisit && tsDiffInMin( ts, currentSession.lastVisit ) <= config.SESSION_LIMIT ) {
+                                if ( ts === currentSiteSessions[ i + 1 ]?.firstVisit ) {//merge sessions
+                                    delete global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSiteSessions[ i + 1 ][ 'id' ] ];
+                                    currentSession.lastVisit = currentSiteSessions[ i + 1 ].lastVisit;
+                                    currentSiteSessions.splice( i + 1, 1 );
+                                    global.siteVisits[ site ][ 'sessionsCount' ] -= 1;
+                                }
+                                else {
+                                    currentSession.lastVisit = ts;
+                                }
+                                global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSession[ 'id' ] ] = tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit );
+                                break;
+                            }
+                            else break;
                         }
-                    } );
-                    // fs.renameSync( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }` );
-                } catch ( err ) {
-                    console.error( `SessionDAL: Failed to read and process file ${ fileName } \nerr: ${ err.stack }` );
-                    fs.renameSync( `${ newStaticFilesPath }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }` );
-                }
-                finally {
-                    console.timeEnd( fileName );
-                }
-
+                    }
+                    visitorSessions[ visitorId ] = currentVisitorSessions;
+                    return visitorSessions;
+                }, ( global.visitorSessions || {} ) );
             }
-            let totalSessions = 0;
-            // for ( let z = 0; z < Object.keys( global.visitorSessions ).length; z++ ) {
-            //     const visitor = Object.keys( global.visitorSessions )[ z ];
-            //     for ( let x = 0; x < Object.keys( global.visitorSessions[ visitor ] ).length; x++ ) {
-            //         const site = Object.keys( global.visitorSessions[ visitor ] )[ x ];
-            //         totalSessions += global.visitorSessions[ visitor ][ site ].length;
-            //         if ( global.visitorSessions[ visitor ][ site ].length > 1 )
-            //             console.log( visitor, site );
-            //     }
-
-            // }
-            console.log( totalSessions );
+            for ( const fileName of files ) {
+                fs.rename( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
+            }
+            console.timeEnd( funcName );
+            console.log( 'end ' + funcName );
+            // fs.renameSync( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }` );
         } catch ( err ) {
             console.error( `SessionDAL: Faild to fill sessions data, err: ${ err.stack }` );
         }
+    },
+    siteSessionCount: function ( siteUrl ) {
+        return global.siteVisits[ siteUrl ]?.sessionsCount;
+    },
+    visitorUniqueSites: function ( visitorId ) {
+        return global.visitorSessions[ visitorId ]?.uniqueSites;
+    },
+
+    siteSumSessionLength( siteUrl ) {
+        return global.siteVisits[ siteUrl ]?.sumSessionsLength;
     }
 
-    async readCsvAsJson( path ) {
-        return new Promise( function ( resolve, reject ) {
-            const records = [];
-            const parser = fs.createReadStream( path ).pipe( parse( {
-                from_line: 1,
-                delimiter: ','
-            } ) );
 
-            parser.on( 'readable', function () {
-                let record;
-                while ( ( record = parser.read() ) !== null ) {
-                    records.push( record );
-                }
-            } );
-            parser.on( 'error', function ( err ) {
-                reject( `Faild to read csv file: ${ path }, err: ${ err.stack }` );
-            } );
-            parser.on( 'end', function () {
-                resolve( records );
-            } );
+};
+
+async function readCsvAsJson( path ) {
+    return new Promise( function ( resolve, reject ) {
+        const records = [];
+        const parser = fs.createReadStream( path ).pipe( parse( {
+            from_line: 1,
+            delimiter: ','
+        } ) );
+
+        parser.on( 'readable', function () {
+            let record;
+            while ( ( record = parser.read() ) !== null ) {
+                records.push( record );
+            }
         } );
-    }
+        parser.on( 'error', function ( err ) {
+            reject( `Faild to read csv file: ${ path }, err: ${ err.stack }` );
+        } );
+        parser.on( 'end', function () {
+            resolve( records );
+        } );
+    } );
 }
-
-
-module.exports = SessionsDAL;

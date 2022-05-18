@@ -19,7 +19,7 @@ class Session {
                 if ( tsDiffInMin( ts, this.lastVisit ) > config.SESSION_LIMIT ) return [ ts ];
                 else {
                     if ( lastSessionCheck && tsDiffInMin( lastSessionCheck[ 0 ], ts ) <= config.SESSION_LIMIT ) {
-                        // this.lastVisit = lastSessionCheck[ 1 ]; // merge sessions
+                        this.lastVisit = lastSessionCheck[ 1 ]; // merge sessions
                         return false;
                     }
                     else {
