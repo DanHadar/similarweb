@@ -12,7 +12,6 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 - /numUniqueVisitedSites/:visitorId - an endpoint that recive visitor id as an url parameter and return string that include the amount of the unique sites that the specific user visited
 
 ### Files structure
-.
  * [tree-md](./tree-md)
  * [dir2](./dir2)
    * [file21.ext](./dir2/file21.ext)
@@ -22,8 +21,12 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
    * [file11.ext](./dir1/file11.ext)
    * [file12.ext](./dir1/file12.ext)
  * [file_in_root.ext](./file_in_root.ext)
+ * [app.js](./app.js)
+ * [files.test.js](./files.test.js)
+ * [package.json](./package.json)
  * [README.md](./README.md)
- * [dir3](./dir3)
+ * [server.config.js](./server.config.js)
+ * [server.js](./server.js)
 ### Technologies
 This project built and base on [NodeJS](https://nodejs.org/en/) language.
 
@@ -73,7 +76,7 @@ There are two test files in the project:
     1. Sending a request with url parameter - expecting to get data successfully
     2. Sending a request without url parameter - expecting to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
-- files.test.js: wich testing the files loader funtion (calculateSessions) by few test scenarios:
+- [files.test.js](./files.test.js): wich testing the files loader funtion (calculateSessions) by few test scenarios:
     1. Writing text file to the 'new' folder in the static files path - expecting that the function will move the file to 'failed' folder in the static files path
     2. Writing empty csv file to the 'new' folder - expecting that the function will move the file to 'finished' folder in the static files path
     3. Writing broken csv file (empty visitorId or site or page view timestamp) - expecting that the function will write warning to log about the broken row and then continue to the next row
