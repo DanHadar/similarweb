@@ -16,8 +16,8 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 
 ### Dependecies
 #### Prod
-* express (framework to expose nodejs as a server)
-* csv-parse (to read csv files)
+* [express](https://expressjs.com/) (framework to expose nodejs as a server)
+* [csv-parse](https://www.npmjs.com/package/csv-parser) (to read csv files)
 
 #### Dev
 * jest (for testing javascript)
