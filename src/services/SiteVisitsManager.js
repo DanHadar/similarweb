@@ -66,13 +66,13 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
             const currentSession = currentSiteSessions[ i ];
             let { id, firstVisit, lastVisit } = currentSession;
             if ( visitTimestamp < firstVisit ) {
+                const lastIteration = i === 0;
                 const needUpdateFirstVisit = tsDiffInMin( firstVisit, visitTimestamp ) <= SESSION_TIME_LIMIT;
                 if ( needUpdateFirstVisit ) {
                     firstVisit = updateSession( visitorId, site, i, VISIT_TYPE_CONST.FIRST_VISIT, visitTimestamp );
                     setSiteSessionLength( site, tsDiffInSec( lastVisit, firstVisit ), id );
                     continue;
                 }
-                const lastIteration = i === 0;
                 if ( lastIteration ) {
                     addNewSession( visitorId, site, visitTimestamp );
                 }
