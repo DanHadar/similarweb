@@ -57,5 +57,7 @@ All the rest of the application code is scalling up ready.
 ## Testing
 There are two test files in the project:
 - api.test.js:
-    wich testing the api endpoint with three type of tests:
-    1. ss
+    wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
+    1. Sending a request with url parameter - expect to get data successfully
+    2. Sending a request without url parameter - expect to get 404 error code
+    3. Sending a request with url parameter that not exists in sessions data - expect to get data successfully with value 0
