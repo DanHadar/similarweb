@@ -26,7 +26,7 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 ## Installation & Setting up
 1. Install Node from - [download](https://nodejs.org/en/download/) (Node v8.16.0 or higher)
 2. Clone project to a local folder (by git or manual copy)
-3. install packages in the project local folder
+3. install packages by running the following command in the project local folder (cmd)
 ```bash
 $ npm install
 ```
