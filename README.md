@@ -39,4 +39,4 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
     ```bash
     GET http://localhost:3001/api/numUniqueVisitedSites/visitor_1 
     ```
-    aa
+    _before running the program/service make sure port 3001 is free or change to default application port in server.config.js file_
