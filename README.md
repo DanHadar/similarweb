@@ -36,4 +36,6 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
     $ node server.js
     ```
 4. use third party application or browser to send a request i.e:
-_aaa_
+    ```bash
+    GET http://localhost:3001/api/numUniqueVisitedSites/visitor_1
+    ```
