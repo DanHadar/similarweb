@@ -5,7 +5,7 @@ The program load csv files to fulfille varibles with visitors session data like 
 
 ## Solution
 A microservice that run on start up on the new files from 'new' folder in the static files path, load and fulfille all data to varibles in app cache.
-expose a REST Api with 4 endpoints(src/controllers/api.js):
+expose a REST Api with 4 [endpoints](src/controllers/api.js):
 - /calcSessions - mainly for testing but exposed for users who want to load new files as well
 - /numSessions/:siteUrl - an endpoint that recive site url as an url parameter and return string that include the total amount of site sessions
 - /medianSessionsLength/:siteUrl - an endpoint that recive site url as an url parameter and return string that inclde the median of the total site session length
