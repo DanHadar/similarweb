@@ -20,6 +20,6 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 * [csv-parse](https://www.npmjs.com/package/csv-parser) (to read csv files)
 
 #### Dev
-* jest (for testing javascript)
-* supertest (for testing express)
+* [jest](https://jestjs.io/) (for testing javascript)
+* [supertest](https://www.npmjs.com/package/supertest) (for testing express)
 
