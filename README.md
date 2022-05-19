@@ -1,17 +1,25 @@
 # SessionCalculator
-## description
-session calculator is a REST api that made to expose data about visitor session and site visits.
-the program load csv files to fullfile varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
+## Description
+Session calculator is a REST api that made to expose data about visitor session and site visits.
+The program load csv files to fulfille varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
 
-### technologies
-this project built and base on NodeJS language.
+## Solution
+A microservice that run on start up on the new files from 'new' folder in the static files path, load and fulfille all data to varibles in app cache.
+expose a REST Api with 4 endpoints:
+- /calcSessions - mainly for testing but exposed for users who want to load new files as well
+- /numSessions/:siteUrl - an endpoint that recive site url as an url parameter and return string that include the total amount of site sessions
+- /medianSessionsLength/:siteUrl - an endpoint that recive site url as an url parameter and return string that inclde the median of the total site session length
+- /numUniqueVisitedSites/:visitorId - an endpoint that recive visitor id as an url parameter and return string that include the amount of the unique sites that the specific user visited
 
-### dependecies
-#### prod
+### Technologies
+This project built and base on NodeJS language.
+
+### Dependecies
+#### Prod
 * express (framework to expose nodejs as a server)
 * csv-parse (to read csv files)
 
-#### dev
+#### Dev
 * jest (for testing javascript)
 * supertest (for testing express)
 
