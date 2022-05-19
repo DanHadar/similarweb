@@ -12,21 +12,21 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 - /numUniqueVisitedSites/:visitorId - an endpoint that recive visitor id as an url parameter and return string that include the amount of the unique sites that the specific user visited
 
 ### Files structure
- * [tree-md](./tree-md)
- * [dir2](./dir2)
-   * [file21.ext](./dir2/file21.ext)
-   * [file22.ext](./dir2/file22.ext)
-   * [file23.ext](./dir2/file23.ext)
- * [dir1](./dir1)
-   * [file11.ext](./dir1/file11.ext)
-   * [file12.ext](./dir1/file12.ext)
- * [file_in_root.ext](./file_in_root.ext)
+ * [src](./src)
+   * [controllers](./src/controllers)
+        * [controllers](./src/controllers)
+   * [DAL](./src/DAL)
+   * [services](./src/services) (aka BL)
+   * [static](./src/static) (for static files)
+   * [utils](./src/utils)
+ * [.gitignore](./.gitignore)
  * [app.js](./app.js)
  * [files.test.js](./files.test.js)
  * [package.json](./package.json)
  * [README.md](./README.md)
  * [server.config.js](./server.config.js)
  * [server.js](./server.js)
+
 ### Technologies
 This project built and base on [NodeJS](https://nodejs.org/en/) language.
 
