@@ -11,7 +11,7 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 - /medianSessionsLength/:siteUrl - an endpoint that recive site url as an url parameter and return string that inclde the median of the total site session length
 - /numUniqueVisitedSites/:visitorId - an endpoint that recive visitor id as an url parameter and return string that include the amount of the unique sites that the specific user visited
 
-### Files structure
+### Application structure
  * [src](./src)
    * [controllers](./src/controllers)
         * [api.js](./src/controllers/api.js)
