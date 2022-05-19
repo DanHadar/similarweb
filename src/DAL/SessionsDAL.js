@@ -3,16 +3,31 @@ const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
 const { ACTION_CONST } = require( '../utils/index' );
 
+// db/redis - for scale up need to store data in central place like database/cache
 let visitorSessions = {}; //{id:{site:[Session]}}
 let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
 let sessionsIdCounter = 0;
+// end db/redis
+
+let visitorSessionsTemp;
+let siteVisitsTemp;
+let sessionsIdCounterTemp;
 
 module.exports = {
+    fillTempDataFromDB() {
+        visitorSessionsTemp = visitorSessions;
+        siteVisitsTemp = siteVisits;
+        sessionsIdCounterTemp = sessionsIdCounter;
+    },
+    commitDataToDB() {
+        visitorSessions = visitorSessionsTemp;
+        siteVisits = siteVisitsTemp;
+        sessionsIdCounter = sessionsIdCounterTemp;
+    },
     async readCsvRows( path, fileName, cb ) {
         const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
         const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
         return new Promise( function ( resolve, reject ) {
-            const records = [];
             const parser = fs.createReadStream( `${ path }/${ fileName }` ).pipe( parse( {
                 from_line: 1,
                 delimiter: ','
@@ -39,45 +54,45 @@ module.exports = {
     },
 
     getVisitorUniqueSites( visitorId ) {
-        return visitorSessions[ visitorId ]?.uniqueSites;
+        return visitorSessionsTemp[ visitorId ]?.uniqueSites;
     },
     getVisitorSessions( visitorId, site ) {
-        visitorSessions[ visitorId ] || ( visitorSessions[ visitorId ] = { sessions: {}, uniqueSites: {} } );
-        visitorSessions[ visitorId ].uniqueSites[ site ] || ( visitorSessions[ visitorId ].uniqueSites[ site ] = true );
-        visitorSessions[ visitorId ].sessions[ site ] || ( visitorSessions[ visitorId ].sessions[ site ] = [] );
-        return visitorSessions[ visitorId ];
+        visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: {}, uniqueSites: {} } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = true );
+        visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
+        return visitorSessionsTemp[ visitorId ];
     },
     addSiteSession( visitorId, site, visitTimestamp, position ) {
-        const id = sessionsIdCounter;
-        visitorSessions[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp } );
+        const id = sessionsIdCounterTemp;
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp } );
     },
     updateSession( visitorId, site, position, visitType, newValue ) {
-        visitorSessions[ visitorId ].sessions[ site ][ position ][ visitType ] = newValue;
-        return visitorSessions[ visitorId ].sessions[ site ][ position ][ visitType ];
+        visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ] = newValue;
+        return visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ];
     },
     delSession( visitorId, site, position ) {
-        visitorSessions[ visitorId ].sessions[ site ].splice( position, 1 );
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 1 );
     },
     getSiteVisits( site ) {
-        siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
-        return siteVisits[ site ];
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        return siteVisitsTemp[ site ];
     },
     getSiteSessionCount( siteUrl ) {
-        return siteVisits[ siteUrl ]?.sessionCount;
+        return siteVisitsTemp[ siteUrl ]?.sessionCount;
     },
     setSiteSessionCount( site, action ) {
-        let siteVisitsObj= siteVisits[ site ]
+        let siteVisitsObj = siteVisitsTemp[ site ];
         if ( action === ACTION_CONST.INCREASE ) return siteVisitsObj.sessionCount += 1;
         siteVisitsObj.sessionCount -= 1;
     },
     getAllSiteSessionLength( siteUrl ) {
-        return siteVisits[ siteUrl ]?.sessionLength;
+        return siteVisitsTemp[ siteUrl ]?.sessionLength;
     },
-    setSiteSessionLength( site, sessionLen = 0, id = ++sessionsIdCounter ) {
-        siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
-        siteVisits[ site ].sessionLength[ id ] = sessionLen;
+    setSiteSessionLength( site, sessionLen = 0, id = ++sessionsIdCounterTemp ) {
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        siteVisitsTemp[ site ].sessionLength[ id ] = sessionLen;
     },
     delSessionLength( site, id ) {
-        delete siteVisits[ site ].sessionLength[ id ];
+        delete siteVisitsTemp[ site ].sessionLength[ id ];
     }
 };

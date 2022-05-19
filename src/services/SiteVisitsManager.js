@@ -11,7 +11,7 @@ const {
     setSiteSessionCount,
     delSessionLength,
     delSession,
-    fillDataFromDB } = require( '../DAL/SessionsDAL' );
+    fillTempDataFromDB } = require( '../DAL/SessionsDAL' );
 const SessionsDal = require( '../DAL/SessionsDAL' );
 const { tsDiffInMin, tsDiffInSec, VISIT_TYPE_CONST, ACTION_CONST } = require( '../utils' );
 const { SESSION_TIME_LIMIT, NEW_STATIC_FILES_PATH } = require( '../../server.config' );
@@ -20,33 +20,25 @@ const fs = require( 'fs' );
 module.exports = {
     calculateSessions: async function () {
         try {
+            fillTempDataFromDB()
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
-            const files = fs.readdirSync( newStaticFilesPath ).map( fileName => SessionsDal.readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
+            const files = fs.readdirSync( newStaticFilesPath ).map( fileName => readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
             console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
             let funcName = 'diff files';
             console.time( funcName );
             await Promise.all( files );
-            // for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
-            //     const fileName = files[ fileIndex ];
-            //     console.time( fileName );
-            //     //read csv as array
-            //     await SessionsDal.readCsvRows( `${ newStaticFilesPath }/${ fileName }`, fillSessionData ); //min o(nlogn) max o(n^2)
-            //     console.timeEnd( fileName );
-            // }
-            // for ( const fileName of files ) {
-            //     // fs.rename( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
-            // }
             console.timeEnd( funcName );
+            commitDataToDB()
             console.log( `Finished load files process successfully` );
         } catch ( err ) {
             console.error( `Failed to load new files, err: ${ err.stack }` );
         }
     },
     numSessions: function ( siteUrl ) { //o(1)
-        return SessionsDal.getSiteSessionCount( siteUrl ) || 0;
+        return getSiteSessionCount( siteUrl ) || 0;
     },
     medianSessionsLength: function ( siteUrl ) {//o(nlog n)
-        const sessionLengthObj = SessionsDal.getAllSiteSessionLength( siteUrl );
+        const sessionLengthObj = getAllSiteSessionLength( siteUrl );
         if ( !sessionLengthObj ) return 0;
         const sortedKeysArr = Object.keys( sessionLengthObj ).sort( ( a, b ) => sessionLengthObj[ a ] - sessionLengthObj[ b ] );
         let half = Math.floor( sortedKeysArr.length / 2 );
@@ -55,7 +47,7 @@ module.exports = {
         return ( ( sessionLengthObj[ sortedKeysArr[ half - 1 ] ] + sessionLengthObj[ sortedKeysArr[ half ] ] ) / 2.0 ).toFixed( 1 );
     },
     numUniqueVisitedSites: function ( visitorId ) { //o(1)
-        const uniqueSitesObj = SessionsDal.getVisitorUniqueSites( visitorId );
+        const uniqueSitesObj = getVisitorUniqueSites( visitorId );
         return uniqueSitesObj ? Object.keys( uniqueSitesObj ).length : 0;
     }
 };
@@ -113,13 +105,13 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
 }
 
 function addNewSession( visitorId, site, visitTimestamp, position = 0 ) {
-    SessionsDal.setSiteSessionLength( site );
-    SessionsDal.setSiteSessionCount( site, ACTION_CONST.INCREASE );
-    SessionsDal.addSiteSession( visitorId, site, visitTimestamp, position );
+    setSiteSessionLength( site );
+    setSiteSessionCount( site, ACTION_CONST.INCREASE );
+    addSiteSession( visitorId, site, visitTimestamp, position );
 }
 
 function delExistsSession( visitorId, site, sessionId, position = 0 ) {
-    SessionsDal.delSessionLength( site, sessionId );
-    SessionsDal.setSiteSessionCount( site, ACTION_CONST.DECREASE );
-    SessionsDal.delSession( visitorId, site, position );
+    delSessionLength( site, sessionId );
+    setSiteSessionCount( site, ACTION_CONST.DECREASE );
+    delSession( visitorId, site, position );
 }
