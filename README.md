@@ -24,7 +24,7 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 * [supertest](https://www.npmjs.com/package/supertest) (for testing express)
 
 ## Installation & Setting up
-i. Install Node from - [download](https://nodejs.org/en/download/) (Node v8.16.0 or higher)
-ii. bla
+1. Install Node from - [download](https://nodejs.org/en/download/) (Node v8.16.0 or higher)
+2. bla
 
 Node v8.16.0 
