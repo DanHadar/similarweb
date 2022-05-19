@@ -18,7 +18,7 @@ const { SESSION_TIME_LIMIT, NEW_STATIC_FILES_PATH } = require( '../../server.con
 const fs = require( 'fs' );
 
 module.exports = {
-    calculateSessions: async function () {
+    calculateSessions: async function () { //min o(nlogn) max o(n^2)
         try {
             fillTempDataFromDB()
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
