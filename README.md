@@ -56,14 +56,18 @@ All the rest of the application code is scalling up ready.
 
 ## Testing
 There are two test files in the project:
-- api.test.js:
-    wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
-    1. Sending a request with url parameter - expect to get data successfully
-    2. Sending a request without url parameter - expect to get 404 error code
-    3. Sending a request with url parameter that not exists in sessions data - expect to get data successfully with value 0
-- files.test.js
+- api.test.js: wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
+    1. Sending a request with url parameter - expecting to get data successfully
+    2. Sending a request without url parameter - expecting to get 404 error code
+    3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
+- files.test.js: wich testing the files loader funtion (calculateSessions) by few test scenarios:
+    1. Writing text file to the 'new' folder in the static files path - expecting that the function will move the file to 'failed' folder in the static files path
+    2. Writing empty csv file to the 'new' folder - expecting that the function will move the file to 'finished' folder in the static files path
+    3. Writing broken csv file (empty visitorId or site or page view timestamp) - expecting that the function will write warning to log about the broken row and then continue to the next row
+    4. Writing broken csv file (short page view timestamp) - expecting that the function will write warning to log about the broken row and then continue to the next row
+
 
 run the following command for testing the application:
 ```bash
-npm test
+$ npm test
 ```
