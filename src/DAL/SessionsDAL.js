@@ -55,12 +55,12 @@ module.exports = {
             } );
             parser.on( 'error', function ( err ) {
                 err.stack = `Faild to read csv file: ${ path }/${ fileName }, err: ${ err.stack }`;
-                reject( err );
-                fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
+                ;
+                fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { reject( err ); } );
             } );
             parser.on( 'end', function () {
-                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
-                resolve();
+                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
+
             } );
         } );
     },
