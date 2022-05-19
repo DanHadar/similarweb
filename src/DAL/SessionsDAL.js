@@ -1,6 +1,7 @@
 const config = require( '../../server.config' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
+const { ACTION_CONST } = require( '../utils/index' );
 
 let visitorSessions = {}; //{id:{site:[Session]}}
 let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
@@ -42,20 +43,20 @@ module.exports = {
     },
     getVisitorSessions( visitorId, site ) {
         visitorSessions[ visitorId ] || ( visitorSessions[ visitorId ] = { sessions: {}, uniqueSites: {} } );
-        visitorSessions[ visitorId ][ 'uniqueSites' ][ site ] || ( visitorSessions[ visitorId ][ 'uniqueSites' ][ site ] = true );
-        visitorSessions[ visitorId ][ 'sessions' ][ site ] || ( visitorSessions[ visitorId ][ 'sessions' ][ site ] = [] );
+        visitorSessions[ visitorId ].uniqueSites[ site ] || ( visitorSessions[ visitorId ].uniqueSites[ site ] = true );
+        visitorSessions[ visitorId ].sessions[ site ] || ( visitorSessions[ visitorId ].sessions[ site ] = [] );
         return visitorSessions[ visitorId ];
     },
-    addSiteSession( visitorId, site, visitTs, position ) {
-        const id = this.getNewSessionId();
-        visitorSessions[ visitorId ][ 'sessions' ][ site ].splice( position, 0, { id, firstVisit: visitTs, lastVisit: visitTs } );
+    addSiteSession( visitorId, site, visitTimestamp, position ) {
+        const id = sessionsIdCounter;
+        visitorSessions[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp } );
     },
     updateSession( visitorId, site, position, visitType, newValue ) {
-        visitorSessions[ visitorId ][ 'sessions' ][ site ][ position ][ visitType ] = newValue;
-        return visitorSessions[ visitorId ][ 'sessions' ][ site ][ position ][ visitType ];
+        visitorSessions[ visitorId ].sessions[ site ][ position ][ visitType ] = newValue;
+        return visitorSessions[ visitorId ].sessions[ site ][ position ][ visitType ];
     },
     delSession( visitorId, site, position ) {
-        visitorSessions[ visitorId ][ 'sessions' ][ site ].splice( position, 1 );
+        visitorSessions[ visitorId ].sessions[ site ].splice( position, 1 );
     },
     getSiteVisits( site ) {
         siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
@@ -65,19 +66,18 @@ module.exports = {
         return siteVisits[ siteUrl ]?.sessionCount;
     },
     setSiteSessionCount( site, action ) {
-        action === 'increase' ? siteVisits[ site ][ 'sessionCount' ] += 1 : siteVisits[ site ][ 'sessionCount' ] -= 1;
+        let siteVisitsObj= siteVisits[ site ]
+        if ( action === ACTION_CONST.INCREASE ) return siteVisitsObj.sessionCount += 1;
+        siteVisitsObj.sessionCount -= 1;
     },
     getAllSiteSessionLength( siteUrl ) {
         return siteVisits[ siteUrl ]?.sessionLength;
     },
-    setSiteSessionLength( site, newValue, id = this.getNewSessionId( true ) ) {
+    setSiteSessionLength( site, sessionLen = 0, id = ++sessionsIdCounter ) {
         siteVisits[ site ] || ( siteVisits[ site ] = { sessionCount: 0, sessionLength: {} } );
-        siteVisits[ site ][ 'sessionLength' ][ id ] = newValue;
+        siteVisits[ site ].sessionLength[ id ] = sessionLen;
     },
     delSessionLength( site, id ) {
-        delete siteVisits[ site ][ 'sessionLength' ][ id ];
-    },
-    getNewSessionId( increaseNeeded ) {
-        return increaseNeeded ? ++sessionsIdCounter : sessionsIdCounter;
+        delete siteVisits[ site ].sessionLength[ id ];
     }
 };
