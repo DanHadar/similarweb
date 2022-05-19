@@ -27,12 +27,11 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 1. Install Node from - [download](https://nodejs.org/en/download/) (Node v8.16.0 or higher)
 2. Clone project to a local folder (by git or manual copy)
 3. run the following commands in the project local folder
-1. install packages by running the following command in the project local folder (cmd)
-```bash
-$ npm install
-```
-2. run the following command to run the program/server
-```bash
-$ node server.js
-```
-Node v8.16.0 
+    1. install packages by running the following command in the project local folder (cmd)
+    ```bash
+    $ npm install
+    ```
+    2. run the following command to run the program/server
+    ```bash
+    $ node server.js
+    ```
