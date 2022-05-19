@@ -27,6 +27,10 @@ module.exports = {
     async readCsvRows( path, fileName, cb ) {
         const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
         const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
+        if ( fileName.slice( fileName.length - 3 ).toLowerCase() !== 'csv' ) {
+            console.error( `Invalid file type (only csv supported) found in new files folder - ${ fileName }` );
+            return fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
+        }
         return new Promise( function ( resolve, reject ) {
             const parser = fs.createReadStream( `${ path }/${ fileName }` ).pipe( parse( {
                 from_line: 1,
@@ -44,10 +48,10 @@ module.exports = {
             parser.on( 'error', function ( err ) {
                 err.stack = `Faild to read csv file: ${ path }/${ fileName }, err: ${ err.stack }`;
                 reject( err );
-                // fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
+                fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
             } );
             parser.on( 'end', function () {
-                // fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
+                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
                 resolve();
             } );
         } );
