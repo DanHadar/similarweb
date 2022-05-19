@@ -11,9 +11,9 @@ async function main() {
     if ( !fs.existsSync( `${ FAILED_STATIC_FILES_PATH }` ) ) fs.mkdirSync( `${ FAILED_STATIC_FILES_PATH }` );
     if ( !fs.existsSync( `${ FINISHED_STATIC_FILES_PATH }` ) ) fs.mkdirSync( `${ FINISHED_STATIC_FILES_PATH }` );
     await SiteVisitsManager.calculateSessions();
-    // console.log( SiteVisitsManager.numUniqueVisitedSites( 'visitor_1' ) );
-    // console.log( SiteVisitsManager.numSessions( 'www.s_1.com' ) );
-    // console.log( SiteVisitsManager.medianSessionsLength( 'www.s_1.com' ) );
+    console.log( SiteVisitsManager.numUniqueVisitedSites( 'visitor_1' ) );
+    console.log( SiteVisitsManager.numSessions( 'www.s_1.com' ) );
+    console.log( SiteVisitsManager.medianSessionsLength( 'www.s_1.com' ) );
     app.listen( PORT, () => {
         console.log( `${ SERVICE_NAME } running and listen to port ${ PORT }` );
     } );

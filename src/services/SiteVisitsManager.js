@@ -12,15 +12,16 @@ const {
     delSessionLength,
     delSession,
     fillTempDataFromDB } = require( '../DAL/SessionsDAL' );
-const SessionsDal = require( '../DAL/SessionsDAL' );
-const { tsDiffInMin, tsDiffInSec, VISIT_TYPE_CONST, ACTION_CONST } = require( '../utils' );
+const { tsDiffInMin, tsDiffInSec } = require( '../utils/functions' );
+const { VISIT_TYPE_CONST, ACTION_CONST } = require( '../utils/constants' );
 const { SESSION_TIME_LIMIT, NEW_STATIC_FILES_PATH } = require( '../../server.config' );
 const fs = require( 'fs' );
+let timestampDiffInSeconds, timestampDiffIn;
 
 module.exports = {
     calculateSessions: async function () { //min o(nlogn) max o(n^2)
         try {
-            fillTempDataFromDB()
+            fillTempDataFromDB();
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
             const files = fs.readdirSync( newStaticFilesPath ).map( fileName => readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
             console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
@@ -28,7 +29,7 @@ module.exports = {
             console.time( funcName );
             await Promise.all( files );
             console.timeEnd( funcName );
-            commitDataToDB()
+            commitDataToDB();
             console.log( `Finished load files process successfully` );
         } catch ( err ) {
             console.error( `Failed to load new files, err: ${ err.stack }` );
@@ -53,48 +54,30 @@ module.exports = {
 };
 function fillSessionData( visitorId, site, visitTimestamp ) {
     try {
-        //--- initializing
         let currentVisitorSessions = getVisitorSessions( visitorId, site );
         let currentSiteSessions = currentVisitorSessions.sessions[ site ];
         const fillFirstSession = !currentSiteSessions.length;
 
-        //--- fill first session by id+site
         if ( fillFirstSession ) {
             return addNewSession( visitorId, site, visitTimestamp );
         }
         for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
             const currentSession = currentSiteSessions[ i ];
-            let { id, firstVisit, lastVisit } = currentSession;
+            let { firstVisit, lastVisit } = currentSession;
+            const prevIterationSession = currentSiteSessions[ i + 1 ];
+            timestampDiffInMinutes = tsDiffInMin( visitTimestamp, lastVisit );
+            const needCreateNewSession = timestampDiffInMinutes > SESSION_TIME_LIMIT && visitTimestamp !== prevIterationSession?.firstVisit;
+            const needUpdateLastVisitOrMergeSessions = visitTimestamp > lastVisit && tsDiffInMin( visitTimestamp, lastVisit ) <= SESSION_TIME_LIMIT;
             if ( visitTimestamp < firstVisit ) {
-                const lastIteration = i === 0;
-                const needUpdateFirstVisit = tsDiffInMin( firstVisit, visitTimestamp ) <= SESSION_TIME_LIMIT;
-                if ( needUpdateFirstVisit ) {
-                    firstVisit = updateSession( visitorId, site, i, VISIT_TYPE_CONST.FIRST_VISIT, visitTimestamp );
-                    setSiteSessionLength( site, tsDiffInSec( lastVisit, firstVisit ), id );
-                    continue;
-                }
-                if ( lastIteration ) {
-                    addNewSession( visitorId, site, visitTimestamp );
-                }
+                UpdateOrCreateSession( visitorId, site, i, visitTimestamp, currentSession );
                 continue;
             }
-            const prevIterationSession = currentSiteSessions[ i + 1 ];
-            const needCreateNewSession = tsDiffInMin( visitTimestamp, lastVisit ) > SESSION_TIME_LIMIT && visitTimestamp !== prevIterationSession?.firstVisit;
             if ( needCreateNewSession ) {
                 addNewSession( visitorId, site, visitTimestamp, i + 1 );
                 break;
             }
-            const needUpdateLastVisitOrMergeSessions = visitTimestamp > lastVisit && tsDiffInMin( visitTimestamp, lastVisit ) <= SESSION_TIME_LIMIT;
             if ( needUpdateLastVisitOrMergeSessions ) {
-                const needMergeSessions = visitTimestamp === prevIterationSession?.firstVisit;
-                if ( needMergeSessions ) {//merge sessions
-                    lastVisit = updateSession( visitorId, site, i, VISIT_TYPE_CONST.LAST_VISIT, prevIterationSession.lastVisit );
-                    delExistsSession( visitorId, site, prevIterationSession.id, i + 1 );
-                }
-                else {
-                    lastVisit = updateSession( visitorId, site, i, VISIT_TYPE_CONST.LAST_VISIT, visitTimestamp );
-                }
-                setSiteSessionLength( site, tsDiffInSec( lastVisit, firstVisit ), id );
+                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevIterationSession, currentSession );
                 break;
             }
             break;
@@ -114,4 +97,32 @@ function delExistsSession( visitorId, site, sessionId, position = 0 ) {
     delSessionLength( site, sessionId );
     setSiteSessionCount( site, ACTION_CONST.DECREASE );
     delSession( visitorId, site, position );
+}
+
+function UpdateOrCreateSession( visitorId, site, position, visitTimestamp, { id, firstVisit, lastVisit } ) {
+    const lastIteration = i === 0;
+    timestampDiffInMinutes = tsDiffInMin( firstVisit, visitTimestamp );
+    const needUpdateFirstVisit = timestampDiffInMinutes <= SESSION_TIME_LIMIT;
+    if ( needUpdateFirstVisit ) {
+        firstVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.FIRST_VISIT, visitTimestamp );
+        timestampDiffInSeconds = tsDiffInSec( lastVisit, firstVisit );
+        return setSiteSessionLength( site, timestampDiffInSeconds, id );
+
+    }
+    if ( lastIteration ) {
+        addNewSession( visitorId, site, visitTimestamp );
+    }
+
+}
+function updateOrMergeSessions( visitorId, site, position, visitTimestamp, prevIterationSession, { id, firstVisit, lastVisit } ) {
+    const needMergeSessions = visitTimestamp === prevIterationSession?.firstVisit;
+    if ( needMergeSessions ) {
+        lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, prevIterationSession.lastVisit );
+        delExistsSession( visitorId, site, prevIterationSession.id, position + 1 );
+    }
+    else {
+        lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, visitTimestamp );
+    }
+    timestampDiffInSeconds = tsDiffInSec( lastVisit, firstVisit );
+    setSiteSessionLength( site, timestampDiffInSeconds, id );
 }

@@ -1,7 +1,7 @@
 const config = require( '../../server.config' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
-const { ACTION_CONST } = require( '../utils/index' );
+const { ACTION_CONST } = require( '../utils/constants' );
 
 // db/redis - for scale up need to store data in central place like database/cache
 let visitorSessions = {}; //{id:{site:[Session]}}
@@ -40,9 +40,17 @@ module.exports = {
             parser.on( 'readable', function () {
                 let record;
                 while ( ( record = parser.read() ) !== null ) {
-                    [ visitorId, site, , ts ] = record;
-                    ts = ts * 1000;
-                    cb( visitorId, site, ts );
+                    [ visitorId, site, , timestamp ] = record;
+                    if ( !visitorId.length || !site.length || !timestamp.length ) {
+                        console.warn( `Invalid row data from csv: ${ fileName }, reason: empty value, row data: visitorId: ${ visitorId } site: ${ site } timestamp: ${ timestamp }` );
+                        continue;
+                    }
+                    if ( timestamp.length < 10 ) {
+                        console.warn( `Invalid row data from csv: ${ fileName }, reason: timestamp length lower then the minimum length (10) \nrow data: visitorId: ${ visitorId } site: ${ site } timestamp: ${ timestamp }` );
+                        continue;
+                    }
+                    timestamp = timestamp * 1000;
+                    cb( visitorId, site, timestamp );
                 }
             } );
             parser.on( 'error', function ( err ) {

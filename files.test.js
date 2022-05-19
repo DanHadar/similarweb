@@ -16,4 +16,36 @@ describe( 'Test files loader', () => {
         await SiteVisitsManager.calculateSessions();
         expect( fs.existsSync( `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }/emptyCsv.csv` ) ).toBe( true );
     } );
+
+    test( "Writing broken csv file (empty visitorId) to the new files folder - loader should continue to the next row", async () => {
+        fs.writeFileSync( `${ process.cwd() }${ NEW_STATIC_FILES_PATH }/emptyCsv.csv`, ',www.s_8.com,www.s_8.com/page_1,1347844442\ndan,www.s_8.com,www.s_8.com/page_1,1347844442' );
+        await SiteVisitsManager.calculateSessions();
+        expect( fs.existsSync( `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }/emptyCsv.csv` ) ).toBe( true );
+        const numOfUniqueSites = await SiteVisitsManager.numUniqueVisitedSites( 'dan' );
+        expect(numOfUniqueSites).toEqual( 1 );
+    } );
+
+    test( "Writing broken csv file (empty site) to the new files folder - loader should continue to the next row", async () => {
+        fs.writeFileSync( `${ process.cwd() }${ NEW_STATIC_FILES_PATH }/emptyCsv.csv`, 'dan,,www.s_8.com/page_1,1347844442\ndan,www.s_8.com,www.s_8.com/page_1,1347844442' );
+        await SiteVisitsManager.calculateSessions();
+        expect( fs.existsSync( `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }/emptyCsv.csv` ) ).toBe( true );
+        const numOfUniqueSites = await SiteVisitsManager.numUniqueVisitedSites( 'dan' );
+        expect(numOfUniqueSites).toEqual( 1 );
+    } );
+
+    test( "Writing broken csv file (empty timestamp) to the new files folder - loader should continue to the next row", async () => {
+        fs.writeFileSync( `${ process.cwd() }${ NEW_STATIC_FILES_PATH }/emptyCsv.csv`, 'dan,www.s_8.com,www.s_8.com/page_1,\ndan,www.s_8.com,www.s_8.com/page_1,1347844442' );
+        await SiteVisitsManager.calculateSessions();
+        expect( fs.existsSync( `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }/emptyCsv.csv` ) ).toBe( true );
+        const numOfUniqueSites = await SiteVisitsManager.numUniqueVisitedSites( 'dan' );
+        expect(numOfUniqueSites).toEqual( 1 );
+    } );
+
+    test( "Writing broken csv file (short timestamp) to the new files folder - loader should continue to the next row", async () => {
+        fs.writeFileSync( `${ process.cwd() }${ NEW_STATIC_FILES_PATH }/emptyCsv.csv`, 'dan,www.s_8.com,www.s_8.com/page_1,13478\ndan,www.s_8.com,www.s_8.com/page_1,1347844442' );
+        await SiteVisitsManager.calculateSessions();
+        expect( fs.existsSync( `${ process.cwd() }${ FINISHED_STATIC_FILES_PATH }/emptyCsv.csv` ) ).toBe( true );
+        const numOfUniqueSites = await SiteVisitsManager.numUniqueVisitedSites( 'dan' );
+        expect(numOfUniqueSites).toEqual( 1 );
+    } );
 } );
