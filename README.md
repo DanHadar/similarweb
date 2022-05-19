@@ -14,8 +14,8 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 ### Application structure
  > [src](./src)
    >> [controllers](./src/controllers)
-        >> [api.js](./src/controllers/api.js)
-        >> [api.test.js](./src/controllers/api.test.js)
+        > [api.js](./src/controllers/api.js)
+        > [api.test.js](./src/controllers/api.test.js)
    >> [DAL](./src/DAL)
         >> [SessionsDAL.js](./src/DAL/SessionsDAL.js)
    >> [services](./src/services) (aka BL)
