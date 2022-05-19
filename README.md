@@ -12,7 +12,7 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 - /numUniqueVisitedSites/:visitorId - an endpoint that recive visitor id as an url parameter and return string that include the amount of the unique sites that the specific user visited
 
 ### Technologies
-This project built and base on NodeJS language.
+This project built and base on [NodeJS](https://nodejs.org/en/) language.
 
 ### Dependecies
 #### Prod
