@@ -23,3 +23,7 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
 * [jest](https://jestjs.io/) (for testing javascript)
 * [supertest](https://www.npmjs.com/package/supertest) (for testing express)
 
+## Installation
+i. Install Node from - [download](https://nodejs.org/en/download/) (Node v8.16.0 or higher)
+
+Node v8.16.0 
