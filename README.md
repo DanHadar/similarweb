@@ -14,11 +14,19 @@ expose a REST Api with 4 [endpoints](src/controllers/api.js):
 ### Files structure
  * [src](./src)
    * [controllers](./src/controllers)
-        * [controllers](./src/controllers)
+        * [api.js](./src/controllers/api.js)
+        * [api.test.js](./src/controllers/api.test.js)
    * [DAL](./src/DAL)
+        * [SessionsDAL.js](./src/DAL/SessionsDAL.js)
    * [services](./src/services) (aka BL)
+        * [SiteVisitsManager.js](./src/services/SiteVisitsManager.js)
    * [static](./src/static) (for static files)
+        * [failed](./src/static/failed) (will create on start up if not exists)
+        * [finished](./src/static/finished) (will create on start up if not exists)
+        * [new](./src/static/new) (will create on start up if not exists)
    * [utils](./src/utils)
+        * [constants](./src/utils/constants)
+        * [functions](./src/utils/functions)
  * [.gitignore](./.gitignore)
  * [app.js](./app.js)
  * [files.test.js](./files.test.js)
@@ -72,7 +80,7 @@ All the rest of the application code is scalling up ready.
 
 ## Testing
 There are two test files in the project:
-- api.test.js: wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
+- [api.test.js](./src/controllers/api.test.js): wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
     1. Sending a request with url parameter - expecting to get data successfully
     2. Sending a request without url parameter - expecting to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
