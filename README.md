@@ -61,3 +61,9 @@ There are two test files in the project:
     1. Sending a request with url parameter - expect to get data successfully
     2. Sending a request without url parameter - expect to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expect to get data successfully with value 0
+- files.test.js
+
+run the following command for testing the application:
+```bash
+npm test
+```
