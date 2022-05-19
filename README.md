@@ -1,7 +1,7 @@
 # SessionCalculator
 ## Description
 Session calculator is a REST api that made to expose data about visitor session and site visits.
-The program load csv files to fulfille varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
+The application load csv files to fulfille varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
 
 ## Solution
 A microservice that run on start up on the new files from 'new' folder in the static files path, load and fulfille all data to varibles in app cache.
@@ -31,7 +31,7 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
     ```bash
     $ npm install
     ```
-    2. run the program/server
+    2. run the application
     ```bash
     $ node server.js
     ```
@@ -39,4 +39,23 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
     ```bash
     GET http://localhost:3001/api/numUniqueVisitedSites/visitor_1 
     ```
-    _before running the program/service make sure port 3001 is free or change to default application port in server.config.js file_
+    _before running the application make sure port 3001 is free or change the default application's port in server.config.js file_
+
+## Scalling up
+The application is storing the data in application cache varibles, for scalling up the only change is to store the data in third party cache application like Redis or in a database like MongoDB.
+All the rest of the application code is scalling up ready.
+
+## Space & time complexity
+### Time complexity
+* calculateSessions function (including readCsvRows & fillSessionData functions) - minimum O(nlogn) / maximum O(n^2) / avg O(nlogn)
+* numSessions function - O(1)
+* medianSessionsLength - minimum O(nlogn) / maximum O(n^2) / avg O(nlogn)
+* numUniqueVisitedSites - O(1)
+
+### Space complexity
+
+## Testing
+There are two test files in the project:
+- api.test.js:
+    wich testing the api endpoint with three type of tests:
+    1. ss
