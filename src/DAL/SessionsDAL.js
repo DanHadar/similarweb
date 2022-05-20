@@ -59,7 +59,8 @@ module.exports = {
                 fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { reject( err ); } );
             } );
             parser.on( 'end', function () {
-                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
+                resolve();
+                // fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
 
             } );
         } );
@@ -70,13 +71,14 @@ module.exports = {
     },
     getVisitorSessions( visitorId, site ) {
         visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: [], uniqueSites: {} } );
-        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = true );
+        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = 0 );
         // visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
         return visitorSessionsTemp[ visitorId ];
     },
     addSiteSession( visitorId, site, visitTimestamp, position ) {
         const id = sessionsIdCounterTemp;
-        visitorSessionsTemp[ visitorId ].sessions.splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp,site } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[site]++;
+        visitorSessionsTemp[ visitorId ].sessions.splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp, site } );
     },
     updateSession( visitorId, site, position, visitType, newValue ) {
         visitorSessionsTemp[ visitorId ].sessions[ position ][ visitType ] = newValue;

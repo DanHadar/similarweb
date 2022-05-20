@@ -25,7 +25,9 @@ module.exports = {
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
             const files = fs.readdirSync( newStaticFilesPath ).map( fileName => readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
             console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
+            console.time(1)
             await Promise.all( files );
+            console.timeEnd(1)
             commitDataToDB();
             console.log( `Finished load files process successfully` );
         } catch ( err ) {
@@ -51,14 +53,15 @@ module.exports = {
 };
 function fillSessionData( visitorId, site, visitTimestamp ) {
     try {
-        let currentVisitorSessions = getVisitorSessions( visitorId, site );
-        let currentSiteSessions = currentVisitorSessions.sessions;
-        const fillFirstSession = !currentSiteSessions.length;
+        let currentVisitorObject = getVisitorSessions( visitorId, site );
+        let currentSiteSessions = currentVisitorObject.sessions;
+        let currentSiteUniqueSites = currentVisitorObject.uniqueSites;
+        const fillFirstSession = !currentSiteUniqueSites[site]
 
         if ( fillFirstSession ) {
             return addNewSession( visitorId, site, visitTimestamp );
         }
-        let prevSiteSessionIteration;
+        let prevSiteSessionIteration, prevSiteSessionPosition;
         for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
             const currentSession = currentSiteSessions[ i ];
             if ( currentSession.site !== site ) continue;
@@ -70,6 +73,7 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
             if ( visitTimestamp < firstVisit ) {
                 UpdateOrCreateSession( visitorId, site, i, visitTimestamp, currentSession );
                 prevSiteSessionIteration = currentSession;
+                prevSiteSessionPosition = i + 1;
                 continue;
             }
             if ( needCreateNewSession ) {
@@ -77,7 +81,7 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
                 break;
             }
             if ( needUpdateLastVisitOrMergeSessions ) {
-                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevSiteSessionIteration, currentSession );
+                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevSiteSessionIteration, prevSiteSessionPosition, currentSession );
                 break;
             }
             break;
@@ -114,11 +118,11 @@ function UpdateOrCreateSession( visitorId, site, position, visitTimestamp, { id,
     }
 
 }
-function updateOrMergeSessions( visitorId, site, position, visitTimestamp, prevIterationSession, { id, firstVisit, lastVisit } ) {
+function updateOrMergeSessions( visitorId, site, position, visitTimestamp, prevIterationSession, prevSiteSessionPosition, { id, firstVisit, lastVisit } ) {
     const needMergeSessions = visitTimestamp === prevIterationSession?.firstVisit;
     if ( needMergeSessions ) {
         lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, prevIterationSession.lastVisit );
-        delExistsSession( visitorId, site, prevIterationSession.id, position + 1 );
+        delExistsSession( visitorId, site, prevIterationSession.id, prevSiteSessionPosition );
     }
     else {
         lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, visitTimestamp );
