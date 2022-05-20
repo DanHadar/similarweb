@@ -4,7 +4,13 @@ Session calculator is a REST api that was made to expose data about visitors ses
 The application loads csv files to fill varibles in the application cache with visitors sessions data. for example the total number of unique sites that the user visits, sessions count of a specific site url (etc..)
 
 ## Solution
-The application is a microservice. When the application starts running, it loads new csv files, create sessions and save it as varibles in the application cache.
+The application is a microservice.
+The application has the folders below:
+* [static](./src/static) (includes the files folders)
+    * new (includes new files to load)
+    * failed (includes files that failed in the load process)
+    * finished (includes files that finished the load process successfully)
+When the application starts running, it loads new csv files, create sessions, save it as varibles in the application cache and move the file to the relevant folder.
 The application exposes a REST Api with 4 [endpoints](src/controllers/api.js):
 - /calcSessions - mainly for testing, but its also exposed to users who want to load new files
 - /numSessions/:siteUrl - an endpoint that recive site url as an url parameter and return string that include the total amount of site sessions
