@@ -77,6 +77,15 @@ All the rest of the application code is scalling up ready.
 * numUniqueVisitedSites - O(1)
 
 ### Space complexity
+#### [SessionDAL](./src/DAL/SessionsDAL.js) file
+* visitorSessionsTemp - O(n^3)
+* siteVisitsTemp - O(n^2)
+
+#### [SiteVisitsManager](./src/services/SiteVisitsManager.js) file
+* calculateSessions/files - O(n)
+* medianSessionsLength/sessionLengthObj - O(n)
+* medianSessionsLength/sortedKeysArr - O(logn)
+* numUniqueVisitedSites/uniqueSitesObj - O(n)
 
 ## Testing
 There are two test files in the project:

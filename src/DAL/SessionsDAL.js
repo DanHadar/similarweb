@@ -9,8 +9,8 @@ let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
 let sessionsIdCounter = 0;
 // end db/redis
 
-let visitorSessionsTemp;
-let siteVisitsTemp;
+let visitorSessionsTemp; //o(n^3)
+let siteVisitsTemp; //on(n^2)
 let sessionsIdCounterTemp;
 
 module.exports = {
