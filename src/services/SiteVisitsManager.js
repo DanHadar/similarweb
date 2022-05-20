@@ -25,9 +25,7 @@ module.exports = {
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
             const files = fs.readdirSync( newStaticFilesPath ).map( fileName => readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
             console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
-            console.time(1)
             await Promise.all( files );
-            console.timeEnd(1)
             commitDataToDB();
             console.log( `Finished load files process successfully` );
         } catch ( err ) {
@@ -61,6 +59,7 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
         if ( fillFirstSession ) {
             return addNewSession( visitorId, site, visitTimestamp );
         }
+        let prevSiteSession={}
         let prevSiteSessionIteration, prevSiteSessionPosition;
         for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
             const currentSession = currentSiteSessions[ i ];

@@ -72,7 +72,6 @@ module.exports = {
     getVisitorSessions( visitorId, site ) {
         visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: [], uniqueSites: {} } );
         visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = 0 );
-        // visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
         return visitorSessionsTemp[ visitorId ];
     },
     addSiteSession( visitorId, site, visitTimestamp, position ) {
