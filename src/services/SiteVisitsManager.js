@@ -54,25 +54,23 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
         let currentVisitorObject = getVisitorSessions( visitorId, site );
         let currentSiteSessions = currentVisitorObject.sessions;
         let currentSiteUniqueSites = currentVisitorObject.uniqueSites;
-        const fillFirstSession = !currentSiteUniqueSites[site]
+        const fillFirstSession = !currentSiteUniqueSites[ site ];
 
         if ( fillFirstSession ) {
             return addNewSession( visitorId, site, visitTimestamp );
         }
-        let prevSiteSession={}
-        let prevSiteSessionIteration, prevSiteSessionPosition;
+        let prevSiteSession = { prevData: undefined, prevPosition: undefined };
         for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
             const currentSession = currentSiteSessions[ i ];
             if ( currentSession.site !== site ) continue;
             let { firstVisit, lastVisit } = currentSession;
-            // const prevIterationSession = currentSiteSessions[ i + 1 ];
             timestampDiffInMinutes = tsDiffInMin( visitTimestamp, lastVisit );
-            const needCreateNewSession = timestampDiffInMinutes > SESSION_TIME_LIMIT && visitTimestamp !== prevSiteSessionIteration?.firstVisit;
+            const needCreateNewSession = timestampDiffInMinutes > SESSION_TIME_LIMIT && visitTimestamp !== prevSiteSession.prevData?.firstVisit;
             const needUpdateLastVisitOrMergeSessions = visitTimestamp > lastVisit && tsDiffInMin( visitTimestamp, lastVisit ) <= SESSION_TIME_LIMIT;
             if ( visitTimestamp < firstVisit ) {
                 UpdateOrCreateSession( visitorId, site, i, visitTimestamp, currentSession );
-                prevSiteSessionIteration = currentSession;
-                prevSiteSessionPosition = i + 1;
+                prevSiteSession.prevData = currentSession;
+                prevSiteSession.prevPosition = i ;
                 continue;
             }
             if ( needCreateNewSession ) {
@@ -80,7 +78,7 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
                 break;
             }
             if ( needUpdateLastVisitOrMergeSessions ) {
-                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevSiteSessionIteration, prevSiteSessionPosition, currentSession );
+                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevSiteSession, currentSession );
                 break;
             }
             break;
@@ -103,7 +101,7 @@ function delExistsSession( visitorId, site, sessionId, position = 0 ) {
 }
 
 function UpdateOrCreateSession( visitorId, site, position, visitTimestamp, { id, firstVisit, lastVisit } ) {
-    const lastIteration = i === 0;
+    const lastIteration = position === 0;
     timestampDiffInMinutes = tsDiffInMin( firstVisit, visitTimestamp );
     const needUpdateFirstVisit = timestampDiffInMinutes <= SESSION_TIME_LIMIT;
     if ( needUpdateFirstVisit ) {
@@ -117,11 +115,11 @@ function UpdateOrCreateSession( visitorId, site, position, visitTimestamp, { id,
     }
 
 }
-function updateOrMergeSessions( visitorId, site, position, visitTimestamp, prevIterationSession, prevSiteSessionPosition, { id, firstVisit, lastVisit } ) {
-    const needMergeSessions = visitTimestamp === prevIterationSession?.firstVisit;
+function updateOrMergeSessions( visitorId, site, position, visitTimestamp, { prevPosition, prevData }, { id, firstVisit, lastVisit } ) {
+    const needMergeSessions = visitTimestamp === prevData?.firstVisit;
     if ( needMergeSessions ) {
-        lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, prevIterationSession.lastVisit );
-        delExistsSession( visitorId, site, prevIterationSession.id, prevSiteSessionPosition );
+        lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, prevData.lastVisit );
+        delExistsSession( visitorId, site, prevData.id, prevPosition );
     }
     else {
         lastVisit = updateSession( visitorId, site, position, VISIT_TYPE_CONST.LAST_VISIT, visitTimestamp );

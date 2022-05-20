@@ -59,8 +59,7 @@ module.exports = {
                 fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { reject( err ); } );
             } );
             parser.on( 'end', function () {
-                resolve();
-                // fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
+                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
 
             } );
         } );
