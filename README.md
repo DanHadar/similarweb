@@ -1,6 +1,6 @@
 # SessionCalculator
 ## Description
-Session calculator is a REST api that made to expose data about visitor session and site visits.__
+Session calculator is a REST api that made to expose data about visitor session and site visits._
 The application load csv files to fulfille varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
 
 ## Solution
