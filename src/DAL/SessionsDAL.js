@@ -3,14 +3,14 @@ const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
 const { ACTION_CONST } = require( '../utils/constants' );
 
-// db/redis - for scale up need to store data in central place like database/cache
-let visitorSessions = {}; //{id:{site:[Session]}}
-let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
+// simulate third party database/cache - for scale up need to store data in central place like database/cache
+let visitorSessions = {};
+let siteVisits = {};
 let sessionsIdCounter = 0;
-// end db/redis
+// end simulation
 
-let visitorSessionsTemp; //o(n^3)
-let siteVisitsTemp; //on(n^2)
+let visitorSessionsTemp;
+let siteVisitsTemp;
 let sessionsIdCounterTemp;
 
 module.exports = {

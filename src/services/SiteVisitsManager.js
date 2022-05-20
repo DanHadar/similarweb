@@ -16,29 +16,26 @@ const { tsDiffInMin, tsDiffInSec } = require( '../utils/functions' );
 const { VISIT_TYPE_CONST, ACTION_CONST } = require( '../utils/constants' );
 const { SESSION_TIME_LIMIT, NEW_STATIC_FILES_PATH } = require( '../../server.config' );
 const fs = require( 'fs' );
-let timestampDiffInSeconds, timestampDiffIn;
+let timestampDiffInSeconds, timestampDiffInMinutes;
 
 module.exports = {
-    calculateSessions: async function () { //min o(nlogn) max o(n^2)
+    calculateSessions: async function () {
         try {
             fillTempDataFromDB();
             const newStaticFilesPath = `${ process.cwd() }${ NEW_STATIC_FILES_PATH }`;
             const files = fs.readdirSync( newStaticFilesPath ).map( fileName => readCsvRows( newStaticFilesPath, fileName, fillSessionData ) );
             console.log( `Starting load files and calculate sessions, found: ${ files.length } new files to load` );
-            let funcName = 'diff files';
-            console.time( funcName );
             await Promise.all( files );
-            console.timeEnd( funcName );
             commitDataToDB();
             console.log( `Finished load files process successfully` );
         } catch ( err ) {
             console.error( `Failed to load new files, err: ${ err.stack }` );
         }
     },
-    numSessions: function ( siteUrl ) { //o(1)
+    numSessions: function ( siteUrl ) {
         return getSiteSessionCount( siteUrl ) || 0;
     },
-    medianSessionsLength: function ( siteUrl ) {//o(nlog n)
+    medianSessionsLength: function ( siteUrl ) {
         const sessionLengthObj = getAllSiteSessionLength( siteUrl );
         if ( !sessionLengthObj ) return 0;
         const sortedKeysArr = Object.keys( sessionLengthObj ).sort( ( a, b ) => sessionLengthObj[ a ] - sessionLengthObj[ b ] );
@@ -47,7 +44,7 @@ module.exports = {
             return sessionLengthObj[ sortedKeysArr[ half ] ].toFixed( 1 );
         return ( ( sessionLengthObj[ sortedKeysArr[ half - 1 ] ] + sessionLengthObj[ sortedKeysArr[ half ] ] ) / 2.0 ).toFixed( 1 );
     },
-    numUniqueVisitedSites: function ( visitorId ) { //o(1)
+    numUniqueVisitedSites: function ( visitorId ) {
         const uniqueSitesObj = getVisitorUniqueSites( visitorId );
         return uniqueSitesObj ? Object.keys( uniqueSitesObj ).length : 0;
     }

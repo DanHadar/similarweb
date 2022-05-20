@@ -1,6 +1,5 @@
 const request = require( "supertest" );
 const app = require( '../../app' );
-jest.setTimeout( 20000 );
 
 describe( "Test the api endpoints", () => {
     describe( "--calcSessions endpoint--", () => {
