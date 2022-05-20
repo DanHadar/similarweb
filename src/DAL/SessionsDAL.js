@@ -1,125 +1,110 @@
-const Session = require( '../classes/Session' );
 const config = require( '../../server.config' );
-const { tsDiffInMin, tsDiffInSec } = require( '../utils' );
 const fs = require( 'fs' );
 const { parse } = require( 'csv-parse' );
+const { ACTION_CONST } = require( '../utils/constants' );
+
+// db/redis - for scale up need to store data in central place like database/cache
+let visitorSessions = {}; //{id:{site:[Session]}}
+let siteVisits = {}; //{site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
+let sessionsIdCounter = 0;
+// end db/redis
+
+let visitorSessionsTemp;
+let siteVisitsTemp;
+let sessionsIdCounterTemp;
 
 module.exports = {
-
-    fillSessionsData: async function () {
-        global.siteVisits || ( global.siteVisits = {} );// {site:{url:{count:1,sum:{1:sessionLength}}}} o(n^2)
-        try {
-            global.visitorSessions = undefined; //{id:{site:[Session]}}
-            const newStaticFilesPath = `${ process.cwd() }${ config.NEW_STATIC_FILES_PATH }`;
-            const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
-            const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`; const files = fs.readdirSync( newStaticFilesPath );
-            let sessionsIdCounter = 0;
-            let funcName = 'diff files';
-            console.log( 'start ' + funcName );
-            console.time( funcName );
-            for ( let fileIndex = 0; fileIndex < files.length; fileIndex++ ) { //loop over the new files
-                const fileName = files[ fileIndex ];
-                const csvJson = await readCsvAsJson( `${ newStaticFilesPath }/${ fileName }` ); //read csv as array
-                global.visitorSessions = csvJson.reduce( function ( visitorSessions, row ) { //loop over rows in the csv
-                    //--- initializing
-                    [ visitorId, site, , ts ] = row;
-                    ts = ts * 1000;
-                    let currentVisitorSessions = visitorSessions[ visitorId ];
-                    currentVisitorSessions || ( currentVisitorSessions = { sessions: {}, uniqueSites: {} } );
-                    global.siteVisits[ site ] || ( global.siteVisits[ site ] = { sessionsCount: 0, sumSessionsLength: {} } );
-                    currentVisitorSessions[ 'uniqueSites' ][ site ] || ( currentVisitorSessions[ 'uniqueSites' ][ site ] = true );
-                    currentVisitorSessions[ 'sessions' ][ site ] || ( currentVisitorSessions[ 'sessions' ][ site ] = [] );
-
-                    //--- fill first session of id+site
-                    let currentSiteSessions = currentVisitorSessions[ 'sessions' ][ site ];
-                    if ( !currentSiteSessions.length ) {
-                        global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
-                        global.siteVisits[ site ][ 'sessionsCount' ] += 1;
-                        currentSiteSessions.push( { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
-                    }
-                    else {//loop over exists session of id+site
-                        for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
-                            const currentSession = currentSiteSessions[ i ];
-                            if ( ts < currentSession.firstVisit ) {
-                                if ( tsDiffInMin( currentSession.firstVisit, ts ) <= config.SESSION_LIMIT ) {
-                                    currentSession.firstVisit = ts;
-                                    global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSession[ 'id' ] ] = tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit );
-                                }
-                                else if ( i === 0 ) {
-                                    global.siteVisits[ site ][ 'sessionsCount' ] += 1;
-                                    global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
-                                    currentSiteSessions.splice( 0, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
-                                }
-                            }
-                            else if ( tsDiffInMin( ts, currentSession.lastVisit ) > config.SESSION_LIMIT && ts !== currentSiteSessions[ i + 1 ]?.firstVisit ) {
-                                global.siteVisits[ site ][ 'sessionsCount' ] += 1;
-                                global.siteVisits[ site ][ 'sumSessionsLength' ][ ++sessionsIdCounter ] = 0;
-                                currentSiteSessions.splice( i + 1, 0, { id: sessionsIdCounter, firstVisit: ts, lastVisit: ts } );
-                                break;
-                            }
-                            else if ( ts > currentSession.lastVisit && tsDiffInMin( ts, currentSession.lastVisit ) <= config.SESSION_LIMIT ) {
-                                if ( ts === currentSiteSessions[ i + 1 ]?.firstVisit ) {//merge sessions
-                                    delete global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSiteSessions[ i + 1 ][ 'id' ] ];
-                                    currentSession.lastVisit = currentSiteSessions[ i + 1 ].lastVisit;
-                                    currentSiteSessions.splice( i + 1, 1 );
-                                    global.siteVisits[ site ][ 'sessionsCount' ] -= 1;
-                                }
-                                else {
-                                    currentSession.lastVisit = ts;
-                                }
-                                global.siteVisits[ site ][ 'sumSessionsLength' ][ currentSession[ 'id' ] ] = tsDiffInSec( currentSession.lastVisit, currentSession.firstVisit );
-                                break;
-                            }
-                            else break;
-                        }
-                    }
-                    visitorSessions[ visitorId ] = currentVisitorSessions;
-                    return visitorSessions;
-                }, ( global.visitorSessions || {} ) );
-            }
-            for ( const fileName of files ) {
-                fs.rename( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { } );
-            }
-            console.timeEnd( funcName );
-            console.log( 'end ' + funcName );
-            // fs.renameSync( `${ newStaticFilesPath }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }` );
-        } catch ( err ) {
-            console.error( `SessionDAL: Faild to fill sessions data, err: ${ err.stack }` );
+    fillTempDataFromDB() {
+        visitorSessionsTemp = visitorSessions;
+        siteVisitsTemp = siteVisits;
+        sessionsIdCounterTemp = sessionsIdCounter;
+    },
+    commitDataToDB() {
+        visitorSessions = visitorSessionsTemp;
+        siteVisits = siteVisitsTemp;
+        sessionsIdCounter = sessionsIdCounterTemp;
+    },
+    async readCsvRows( path, fileName, cb ) {
+        const finishedStaticFilesPath = `${ process.cwd() }${ config.FINISHED_STATIC_FILES_PATH }`;
+        const failedStaticFilesPath = `${ process.cwd() }${ config.FAILED_STATIC_FILES_PATH }`;
+        if ( fileName.slice( fileName.length - 3 ).toLowerCase() !== 'csv' ) {
+            console.error( `Invalid file type (only csv supported) found in new files folder - ${ fileName }` );
+            return fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { } );
         }
-    },
-    siteSessionCount: function ( siteUrl ) {
-        return global.siteVisits[ siteUrl ]?.sessionsCount;
-    },
-    visitorUniqueSites: function ( visitorId ) {
-        return global.visitorSessions[ visitorId ]?.uniqueSites;
+        return new Promise( function ( resolve, reject ) {
+            const parser = fs.createReadStream( `${ path }/${ fileName }` ).pipe( parse( {
+                from_line: 1,
+                delimiter: ','
+            } ) );
+
+            parser.on( 'readable', function () {
+                let record;
+                while ( ( record = parser.read() ) !== null ) {
+                    [ visitorId, site, , timestamp ] = record;
+                    if ( !visitorId.length || !site.length || !timestamp.length ) {
+                        console.warn( `Invalid row data from csv: ${ fileName }, reason: empty value, row data: visitorId: ${ visitorId } site: ${ site } timestamp: ${ timestamp }` );
+                        continue;
+                    }
+                    if ( timestamp.length < 10 ) {
+                        console.warn( `Invalid row data from csv: ${ fileName }, reason: timestamp length lower then the minimum length (10) \nrow data: visitorId: ${ visitorId } site: ${ site } timestamp: ${ timestamp }` );
+                        continue;
+                    }
+                    timestamp = timestamp * 1000;
+                    cb( visitorId, site, timestamp );
+                }
+            } );
+            parser.on( 'error', function ( err ) {
+                err.stack = `Faild to read csv file: ${ path }/${ fileName }, err: ${ err.stack }`;
+                ;
+                fs.rename( `${ path }/${ fileName }`, `${ failedStaticFilesPath }/${ fileName }`, function () { reject( err ); } );
+            } );
+            parser.on( 'end', function () {
+                fs.rename( `${ path }/${ fileName }`, `${ finishedStaticFilesPath }/${ fileName }`, function () { resolve(); } );
+
+            } );
+        } );
     },
 
-    siteSumSessionLength( siteUrl ) {
-        return global.siteVisits[ siteUrl ]?.sumSessionsLength;
+    getVisitorUniqueSites( visitorId ) {
+        return visitorSessionsTemp[ visitorId ]?.uniqueSites;
+    },
+    getVisitorSessions( visitorId, site ) {
+        visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: {}, uniqueSites: {} } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = true );
+        visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
+        return visitorSessionsTemp[ visitorId ];
+    },
+    addSiteSession( visitorId, site, visitTimestamp, position ) {
+        const id = sessionsIdCounterTemp;
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp } );
+    },
+    updateSession( visitorId, site, position, visitType, newValue ) {
+        visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ] = newValue;
+        return visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ];
+    },
+    delSession( visitorId, site, position ) {
+        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 1 );
+    },
+    getSiteVisits( site ) {
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        return siteVisitsTemp[ site ];
+    },
+    getSiteSessionCount( siteUrl ) {
+        return siteVisitsTemp[ siteUrl ]?.sessionCount;
+    },
+    setSiteSessionCount( site, action ) {
+        let siteVisitsObj = siteVisitsTemp[ site ];
+        if ( action === ACTION_CONST.INCREASE ) return siteVisitsObj.sessionCount += 1;
+        siteVisitsObj.sessionCount -= 1;
+    },
+    getAllSiteSessionLength( siteUrl ) {
+        return siteVisitsTemp[ siteUrl ]?.sessionLength;
+    },
+    setSiteSessionLength( site, sessionLen = 0, id = ++sessionsIdCounterTemp ) {
+        siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
+        siteVisitsTemp[ site ].sessionLength[ id ] = sessionLen;
+    },
+    delSessionLength( site, id ) {
+        delete siteVisitsTemp[ site ].sessionLength[ id ];
     }
-
-
 };
-
-async function readCsvAsJson( path ) {
-    return new Promise( function ( resolve, reject ) {
-        const records = [];
-        const parser = fs.createReadStream( path ).pipe( parse( {
-            from_line: 1,
-            delimiter: ','
-        } ) );
-
-        parser.on( 'readable', function () {
-            let record;
-            while ( ( record = parser.read() ) !== null ) {
-                records.push( record );
-            }
-        } );
-        parser.on( 'error', function ( err ) {
-            reject( `Faild to read csv file: ${ path }, err: ${ err.stack }` );
-        } );
-        parser.on( 'end', function () {
-            resolve( records );
-        } );
-    } );
-}

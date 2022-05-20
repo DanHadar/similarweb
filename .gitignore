@@ -1,1 +1,4 @@
 node_modules
+package-lock.json
+/src/static/finished/emptyCsv.csv
+/src/static/failed/testDan.txt
