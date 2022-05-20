@@ -67,14 +67,14 @@ The project is created based on [NodeJS](https://nodejs.org/en/) language.
 
 ## Scalling up
 Currently, the application stores the data on the application cache memory.
-In order to scale it up, there is one change that sholud be made: store the data in a third party cache application like Redis or in a database like MongoDB and change fillTempDataFromDB & commitDataToDB functions from [SessionsDAL.js](./src/DAL/SessionsDAL.js) file to get & save data to the new third party application
+In order to scale it up, there is one change that sholud be made: store the data in a third party cache application like Redis or in a database like MongoDB and change fillTempDataFromDB & commitDataToDB functions from [SessionsDAL.js](./src/DAL/SessionsDAL.js) file to get & save data from/to the new third party application.
 
 ## Space & time complexity
 ### Time complexity
 * calculateSessions function (including readCsvRows & fillSessionData functions) - minimum O(nlogn) / maximum O(n^2) / avg O(nlogn)
 * numSessions function - O(1)
-* medianSessionsLength - minimum O(nlogn) / maximum O(n^2) / avg O(nlogn)
-* numUniqueVisitedSites - O(1)
+* medianSessionsLength function - minimum O(nlogn) / maximum O(n^2) / avg O(nlogn)
+* numUniqueVisitedSites function - O(1)
 
 ### Space complexity
 #### [SessionDAL](./src/DAL/SessionsDAL.js) file
@@ -89,15 +89,15 @@ In order to scale it up, there is one change that sholud be made: store the data
 
 ## Testing
 There are two test files in the project:
-- [api.test.js](./src/controllers/api.test.js): wich testing the api endpoint, first of all, testing the calcSessions endpoint to fulfill the application cache varibles with sessions data, then tests each endpoint (except calcSessions) with three type of tests:
+- [api.test.js](./src/controllers/api.test.js): wich tests the api endpoint. first of all, its testing the calcSessions endpoint to fill the application cache varibles with sessions data. then it tests each endpoint (except calcSessions) with three type of tests:
     1. Sending a request with url parameter - expecting to get data successfully
     2. Sending a request without url parameter - expecting to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
-- [files.test.js](./files.test.js): wich testing the files loader funtion (calculateSessions) by few test scenarios:
+- [files.test.js](./files.test.js): wich tests the file loader funtion (calculateSessions) by a few test scenarios:
     1. Writing text file to the 'new' folder in the static files path - expecting that the function will move the file to 'failed' folder in the static files path
     2. Writing empty csv file to the 'new' folder - expecting that the function will move the file to 'finished' folder in the static files path
-    3. Writing broken csv file (empty visitorId or site or page view timestamp) - expecting that the function will write warning to log about the broken row and then continue to the next row
-    4. Writing broken csv file (short page view timestamp) - expecting that the function will write warning to log about the broken row and then continue to the next row
+    3. Writing broken csv file (empty visitorId or site or page view timestamp) - expecting that the function will write a warning about the broken row and then continue to the next row
+    4. Writing broken csv file (short page view timestamp) - expecting that the function will write a warning about the broken row and then continue to the ext row
 
 
 run the following command for testing the application:
