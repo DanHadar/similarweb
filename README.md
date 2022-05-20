@@ -104,7 +104,7 @@ In order to scale it up, there is one change that sholud be made: store the data
 
 ## Testing
 There are two test files in the project:
-- [api.test.js](./src/controllers/api.test.js): wich tests the api endpoint.<br> first of all, its testing the calcSessions endpoint to fill the application cache varibles with sessions data. then it tests each endpoint (except calcSessions) with three type of tests:
+- [api.test.js](./src/controllers/api.test.js): wich tests the api endpoint.<br> first of all, its testing the calcSessions endpoint to fill the application cache varibles with sessions data.<br>then it tests each endpoint (except calcSessions) with three type of tests:
     1. Sending a request with url parameter - expecting to get data successfully
     2. Sending a request without url parameter - expecting to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
