@@ -18,6 +18,7 @@ The application has the folders below:
     *The folders will be created when the application starts running if does not exist*
 
 When the application starts running, it loads new csv files, create sessions, save it as varibles in the application cache and move the file to the relevant folder.
+
 The application exposes a REST Api with 4 [endpoints](src/controllers/api.js):
 - /calcSessions - mainly for testing, but its also exposed to users who want to load new files
 - /numSessions/:siteUrl - an endpoint that recive site url as an url parameter and return string that include the total amount of site sessions
@@ -80,6 +81,7 @@ The project is created based on [NodeJS](https://nodejs.org/en/) language.
 
 ## Scalling up
 Currently, the application stores the data on the application cache memory.
+
 In order to scale it up, there is one change that sholud be made: store the data in a third party cache application like Redis or in a database like MongoDB and change fillTempDataFromDB & commitDataToDB functions from [SessionsDAL.js](./src/DAL/SessionsDAL.js) file to get & save data from/to the new third party application.
 
 ## Space & time complexity
@@ -102,7 +104,9 @@ In order to scale it up, there is one change that sholud be made: store the data
 
 ## Testing
 There are two test files in the project:
-- [api.test.js](./src/controllers/api.test.js): wich tests the api endpoint. first of all, its testing the calcSessions endpoint to fill the application cache varibles with sessions data. then it tests each endpoint (except calcSessions) with three type of tests:
+- [api.test.js](./src/controllers/api.test.js): wich tests the api endpoint.
+
+ first of all, its testing the calcSessions endpoint to fill the application cache varibles with sessions data. then it tests each endpoint (except calcSessions) with three type of tests:
     1. Sending a request with url parameter - expecting to get data successfully
     2. Sending a request without url parameter - expecting to get 404 error code
     3. Sending a request with url parameter that not exists in sessions data - expecting to get data successfully with value 0
