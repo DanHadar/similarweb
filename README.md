@@ -5,6 +5,7 @@ The application loads csv files to fill varibles in the application cache with v
 
 ## Solution
 The application is a microservice.
+
 The application has the folders below:
 * [static](./src/static) (includes the files folders)
     * new (includes new files to load)
