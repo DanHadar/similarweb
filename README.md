@@ -78,7 +78,7 @@ In order to scale it up, there is one change that sholud be made: store the data
 
 ### Space complexity
 #### [SessionDAL](./src/DAL/SessionsDAL.js) file
-* visitorSessionsTemp - O(n^3)
+* visitorSessionsTemp - O(n^2)
 * siteVisitsTemp - O(n^2)
 
 #### [SiteVisitsManager](./src/services/SiteVisitsManager.js) file

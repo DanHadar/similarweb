@@ -69,21 +69,21 @@ module.exports = {
         return visitorSessionsTemp[ visitorId ]?.uniqueSites;
     },
     getVisitorSessions( visitorId, site ) {
-        visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: {}, uniqueSites: {} } );
-        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = true );
-        visitorSessionsTemp[ visitorId ].sessions[ site ] || ( visitorSessionsTemp[ visitorId ].sessions[ site ] = [] );
+        visitorSessionsTemp[ visitorId ] || ( visitorSessionsTemp[ visitorId ] = { sessions: [], uniqueSites: {} } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[ site ] || ( visitorSessionsTemp[ visitorId ].uniqueSites[ site ] = 0 );
         return visitorSessionsTemp[ visitorId ];
     },
     addSiteSession( visitorId, site, visitTimestamp, position ) {
         const id = sessionsIdCounterTemp;
-        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp } );
+        visitorSessionsTemp[ visitorId ].uniqueSites[site]++;
+        visitorSessionsTemp[ visitorId ].sessions.splice( position, 0, { id, firstVisit: visitTimestamp, lastVisit: visitTimestamp, site } );
     },
     updateSession( visitorId, site, position, visitType, newValue ) {
-        visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ] = newValue;
-        return visitorSessionsTemp[ visitorId ].sessions[ site ][ position ][ visitType ];
+        visitorSessionsTemp[ visitorId ].sessions[ position ][ visitType ] = newValue;
+        return visitorSessionsTemp[ visitorId ].sessions[ position ][ visitType ];
     },
     delSession( visitorId, site, position ) {
-        visitorSessionsTemp[ visitorId ].sessions[ site ].splice( position, 1 );
+        visitorSessionsTemp[ visitorId ].sessions.splice( position, 1 );
     },
     getSiteVisits( site ) {
         siteVisitsTemp[ site ] || ( siteVisitsTemp[ site ] = { sessionCount: 0, sessionLength: {} } );
