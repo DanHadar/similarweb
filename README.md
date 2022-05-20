@@ -1,6 +1,6 @@
 # SessionCalculator
 ## Description
-Session calculator is a REST api that made to expose data about visitor session and site visits.
+Session calculator is a REST api that made to expose data about visitor session and site visits.__
 The application load csv files to fulfille varibles with visitors session data like the total number of unique sites that the user visit or session count of a specific site url (etc..)
 
 ## Solution
@@ -66,8 +66,8 @@ This project built and base on [NodeJS](https://nodejs.org/en/) language.
     _before running the application make sure port 3001 is free or change the default application's port in server.config.js file_
 
 ## Scalling up
-The application is storing the data in application cache varibles, for scalling up the only change is to store the data in third party cache application like Redis or in a database like MongoDB.
-All the rest of the application code is scalling up ready.
+Currently, the application stores the data on the application cache memory.
+In order to scale it up, there is one change that sholud be made: store the data in a third party cache application like Redis or in a database like MongoDB.
 
 ## Space & time complexity
 ### Time complexity

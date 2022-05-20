@@ -52,21 +52,24 @@ module.exports = {
 function fillSessionData( visitorId, site, visitTimestamp ) {
     try {
         let currentVisitorSessions = getVisitorSessions( visitorId, site );
-        let currentSiteSessions = currentVisitorSessions.sessions[ site ];
+        let currentSiteSessions = currentVisitorSessions.sessions;
         const fillFirstSession = !currentSiteSessions.length;
 
         if ( fillFirstSession ) {
             return addNewSession( visitorId, site, visitTimestamp );
         }
+        let prevSiteSessionIteration;
         for ( i = currentSiteSessions.length - 1; i >= 0; i-- ) {
             const currentSession = currentSiteSessions[ i ];
+            if ( currentSession.site !== site ) continue;
             let { firstVisit, lastVisit } = currentSession;
-            const prevIterationSession = currentSiteSessions[ i + 1 ];
+            // const prevIterationSession = currentSiteSessions[ i + 1 ];
             timestampDiffInMinutes = tsDiffInMin( visitTimestamp, lastVisit );
-            const needCreateNewSession = timestampDiffInMinutes > SESSION_TIME_LIMIT && visitTimestamp !== prevIterationSession?.firstVisit;
+            const needCreateNewSession = timestampDiffInMinutes > SESSION_TIME_LIMIT && visitTimestamp !== prevSiteSessionIteration?.firstVisit;
             const needUpdateLastVisitOrMergeSessions = visitTimestamp > lastVisit && tsDiffInMin( visitTimestamp, lastVisit ) <= SESSION_TIME_LIMIT;
             if ( visitTimestamp < firstVisit ) {
                 UpdateOrCreateSession( visitorId, site, i, visitTimestamp, currentSession );
+                prevSiteSessionIteration = currentSession;
                 continue;
             }
             if ( needCreateNewSession ) {
@@ -74,7 +77,7 @@ function fillSessionData( visitorId, site, visitTimestamp ) {
                 break;
             }
             if ( needUpdateLastVisitOrMergeSessions ) {
-                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevIterationSession, currentSession );
+                updateOrMergeSessions( visitorId, site, i, visitTimestamp, prevSiteSessionIteration, currentSession );
                 break;
             }
             break;
